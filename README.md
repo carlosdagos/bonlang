@@ -91,9 +91,9 @@ error otherwise.
 
 You should be familiar with Polish notation.
 
-### Lamda support
+### Lambda support
 
-The language supports lamdas (closures)
+The language supports lambdas (closures)
 
 ```
 module Main where
