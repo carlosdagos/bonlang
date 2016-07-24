@@ -1,0 +1,15 @@
+
+/*
+ * This file just declares a module
+ */
+
+module BonlangTest where
+
+def pureFunction [f, x, y] = f $ x y 3.1415
+
+def anotherPureFunction [] = add $ 1 2
+
+def printIt [] = {
+    val three = anotherPureFunction;
+    print $ "Hello, $three";
+}

@@ -1,0 +1,13 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+extra-deps:
+- binary-0.8.4.0
+- bytestring-0.10.6.0
+- directory-1.2.6.3
+- mtl-2.2.1
+- parsec-3.1.11
+- text-1.2.2.1
+- unix-2.7.2.0
+resolver: ghc-8.0.1

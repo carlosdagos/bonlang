@@ -1,0 +1,5 @@
+/*
+ * This file just declares an array
+ */
+
+[1, 2, 3]

@@ -1,0 +1,15 @@
+
+/*
+ * This file just declares a module
+ */
+
+module BonlangTest where
+
+def instructions1 [] = {
+    print $ "Hello worllllddd!"
+}
+
+def instructions2 [] = {
+    print $ "Hello worllllddd again!"
+}
+

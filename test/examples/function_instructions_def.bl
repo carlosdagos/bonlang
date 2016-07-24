@@ -1,0 +1,11 @@
+/*
+ * This file just declares a function with instructions
+ */
+
+def instructionsFunc [] = {
+    print $ "Hello World!";
+    anotherOuput $ yo;
+    val three = add $ 1 2;
+    val pred  = if (equals $ three 3) then true else false;
+    print $ "Heeeeey, $three";
+}

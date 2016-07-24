@@ -1,0 +1,7 @@
+module Main where
+
+
+def main [] = {
+    val λ = lambda [x, y, z] => map $ print [x, y, z];
+}
+

@@ -1,0 +1,6 @@
+/*
+ * This file just declares assigns an alias
+ */
+
+val carlos = "cool guy"
+

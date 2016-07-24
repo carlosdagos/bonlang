@@ -1,0 +1,5 @@
+module Main where
+
+def main [] = {
+    puts $ "Hello! " "Computing some stuff: " (+ $ 1 2 3 4 (- $ 10 (* $ 4 5)));
+}
