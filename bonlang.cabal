@@ -24,6 +24,7 @@ library
                      , Bonlang.Runtime
                      , Bonlang.Runtime.Bool
                      , Bonlang.Runtime.IO
+                     , Bonlang.Runtime.Lists
                      , Bonlang.Runtime.Numeric
                      , Bonlang.Runtime.Primitives
                      , Bonlang.Runtime.Strings

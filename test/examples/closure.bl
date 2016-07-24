@@ -2,6 +2,7 @@ module Main where
 
 
 def main [] = {
-    val λ = lambda [x, y, z] => map $ print [x, y, z];
+    val λ = lambda [x, y, z] => map $ puts-ln [x, y, z];
+    λ $ 1 2 3;
 }
 

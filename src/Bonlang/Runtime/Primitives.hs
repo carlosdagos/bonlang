@@ -4,11 +4,12 @@ module Bonlang.Runtime.Primitives
     ) where
 
 import           Bonlang.Lang
-import qualified Bonlang.Runtime.Numeric    as Numeric
-import qualified Bonlang.Runtime.Bool       as Bool
-import qualified Bonlang.Runtime.Strings    as Strings
-import qualified Bonlang.Runtime.Types      as Types
-import qualified Bonlang.Runtime.IO         as BonIO
+import qualified Bonlang.Runtime.Bool    as Bool
+import qualified Bonlang.Runtime.IO      as BonIO
+import qualified Bonlang.Runtime.Lists   as Lists
+import qualified Bonlang.Runtime.Numeric as Numeric
+import qualified Bonlang.Runtime.Strings as Strings
+import qualified Bonlang.Runtime.Types   as Types
 
 primitives :: [(String, [BonlangValue] -> ThrowsError BonlangValue)]
 primitives = [ ("is-scalar",   Types.isScalar')        -- Boolean primitives
@@ -49,5 +50,6 @@ ioPrimitives :: [(String, [BonlangValue] -> IOThrowsException BonlangValue)]
 ioPrimitives = [ ("print",   BonIO.print)
                , ("puts",    BonIO.puts)
                , ("puts-ln", BonIO.putsln)
+               , ("map",     Lists.map')
                ]
 

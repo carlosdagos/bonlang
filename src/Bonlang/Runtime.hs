@@ -24,10 +24,8 @@ import qualified Data.Map                   as Map
 import           Data.Maybe                 (fromJust, isJust)
 import qualified System.IO                  as IO
 
-type Bindings
-  = M.Map String (IORef.IORef BonlangValue)
-type Scope
-  = IORef.IORef Bindings
+type Bindings = M.Map String BonlangValue
+type Scope    = IORef.IORef Bindings
 
 nullScope :: IO.IO Scope
 nullScope = IORef.newIORef $ Map.fromList []
@@ -35,9 +33,8 @@ nullScope = IORef.newIORef $ Map.fromList []
 getReference :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 getReference scope (BonlangRefLookup name)
   = do s <- liftIO $ IORef.readIORef scope
-       maybe (Except.throwE $ UnboundReference name)
-             (liftIO . IORef.readIORef)
-             (Map.lookup name s)
+       let maybeVal = Map.lookup name s
+       maybe (Except.throwE $ UnboundReference name) return maybeVal
 getReference _ value
   = Except.throwE $ InternalTypeMismatch "Can't lookup" [value]
 
@@ -58,10 +55,9 @@ defineReference scope x
             do alreadyDefined <- liftIO $ isReferenceDefined scope name
                if alreadyDefined
                   then Except.throwE $ DefaultError "alreadyDefined"
-                  else liftIO $ do valueRef <- IORef.newIORef value
-                                   s        <- IORef.readIORef scope
+                  else liftIO $ do s <- IORef.readIORef scope
                                    IORef.writeIORef scope $
-                                       Map.insert name valueRef s
+                                       Map.insert name value s
                                    return value
       error' bad = Except.throwE $
           InternalTypeMismatch "Can't define reference" [bad]
@@ -79,11 +75,8 @@ bindVars scope bindings
        r <- extendScope (Map.toList bindings) (Map.toList s)
        IORef.newIORef r
     where
-        extendScope bdings s
-          = fmap (Map.fromList . (++ s)) (mapM addBinding bdings)
-        addBinding (var, value)
-          = do ref <- IORef.newIORef value
-               return (var, ref)
+        extendScope bdings s = fmap (Map.fromList . (++ s)) (mapM addBinding bdings)
+        addBinding t@(_, _)  = return t
 
 startEval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 startEval s (BonlangDirective dir@(ModuleDef m is at))
@@ -99,19 +92,49 @@ startEval _ _ = Except.throwE cantStartNonModule
 eval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 eval s (BonlangDirective dir)  = evalDirective s dir
 eval s (BonlangBlock is)       = last <$> sequence (fmap (eval s) is)
-eval s ref@BonlangRefLookup {} = getReference s ref >>= eval s
+eval s ref@BonlangRefLookup {} = getReference s ref
+eval _ x@BonlangString {}      = return x
+eval _ x@BonlangNumber {}      = return x
+eval _ x@BonlangBool {}        = return x
+eval s (BonlangList xs)        = do xs' <- sequence $ fmap (eval s) xs
+                                    return $ BonlangList xs'
 eval s x@BonlangAlias {}       = defineReference s x
 eval s (BonlangFuncApply r ps)
   = do resolved <- eval s r
        if isPrimFunction resolved
           then runPrim resolved s ps
-          else error "TODO: func apply for non primary"
+          else case resolved of
+                 x@BonlangClosure {} -> evalClosure s x ps
+                 _ -> error "TODO: func apply for non primary"
 eval s f@BonlangFunc {}
   = if fName f == "main"
        then eval s (fDef f)
        else defineReference s f
-eval _ x
-  = return x
+eval _ x = Except.throwE $ InternalTypeMismatch "Don't know how to eval" [x]
+
+evalClosure :: Scope
+            -> BonlangValue
+            -> [BonlangValue]
+            -> IOThrowsException BonlangValue
+evalClosure s c@BonlangClosure {} ps
+  = do s' <- liftIO $ IORef.readIORef s
+       if notEnoughParams
+          then return BonlangClosure { cParams = cParams c
+                                      , cEnv    = Map.union (cEnv c) newParams'
+                                      , cBody   = cBody c
+                                      }
+          else if tooManyParams
+               then Except.throwE $ DefaultError "Too many params applied"
+               else do let rScope = Map.union s' newParams'
+                       s'' <- liftIO $ IORef.newIORef rScope
+                       eval s'' (cBody c)
+    where
+        notEnoughParams = existingArgs + length ps < length (cParams c)
+        tooManyParams   = existingArgs + length ps > length (cParams c)
+        existingArgs    = length (Map.toList (cEnv c))
+        newParams'      = Map.fromList (zip (drop existingArgs $ cParams c) ps)
+evalClosure _ x _
+  = Except.throwE $ InternalTypeMismatch "Can't eval non closure" [x]
 
 runPrim :: BonlangValue
         -> Scope
@@ -126,12 +149,12 @@ runPrim x _ _
 
 evalDirective :: Scope -> BonlangDirectiveType -> IOThrowsException BonlangValue
 evalDirective s (ModuleDef _ is _)
-  = do sequence_ (fmap (\(_, f) -> eval s f) (Map.toList is))
-       eval s (fromJust $ Map.lookup "main" is)
-evalDirective _ (ModuleImport _)
-  = undefined
-evalDirective _ _
-  = undefined
+  = do sequence_ (fmap (\(_, f) -> defineReference s f) is')
+       evalClosure s (fDef . fromJust $ Map.lookup "main" is) []
+    where
+        is' = filter (\(f,_) -> f /= "main") (Map.toList is)
+evalDirective _ (ModuleImport _) = error "TODO: Module imports"
+evalDirective _ _                = error "TODO: eval directive undefined"
 
 liftThrows :: ThrowsError a -> IOThrowsException a
 liftThrows (Left err) = Except.throwE err
