@@ -43,13 +43,14 @@ is what the runtime looks for in order to start the program.
 
 ### Lazy evaluation
 
-The language is lazy, so this yields no output
+The language is lazy, so this yields "Lazy Hello" but not "Hello World"
 
 ```
 module Main where
 
 def main [] = {
-    val print' = print $ "Hello World!";
+    val sayHello = puts-ln $ "Hello World!";
+    puts-ln $ "Lazy Hello!"
 }
 ```
 
