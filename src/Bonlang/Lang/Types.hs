@@ -20,14 +20,14 @@ isPrimFunction, isPrimFunction', isPrimIOFunction :: BonlangValue -> Bool
 
 isScalar x = or [isString x, isNumber x, isBool x]
 
-isString (BonlangString _) = True
-isString _                 = False
+isString BonlangString {} = True
+isString _                = False
 
-isBool (BonlangBool _) = True
-isBool _               = False
+isBool BonlangBool {} = True
+isBool _              = False
 
-isNumber (BonlangNumber _) = True
-isNumber _                 = False
+isNumber BonlangNumber {} = True
+isNumber _                = False
 
 isInteger (BonlangNumber (Left _)) = True
 isInteger _                        = False
@@ -35,18 +35,18 @@ isInteger _                        = False
 isDouble (BonlangNumber (Right _)) = True
 isDouble _                         = False
 
-isList (BonlangList _) = True
-isList _                    = False
+isList BonlangList {} = True
+isList _              = False
 
-isFunction (BonlangFunc _ _ _ _) = True
-isFunction _                     = False
+isFunction BonlangFunc {} = True
+isFunction _              = False
 
-isPrimFunction (BonlangPrimFunc _)   = True
-isPrimFunction (BonlangPrimIOFunc _) = True
-isPrimFunction _                     = False
+isPrimFunction BonlangPrimFunc {}   = True
+isPrimFunction BonlangPrimIOFunc {} = True
+isPrimFunction _                    = False
 
-isPrimFunction' (BonlangPrimFunc _) = True
-isPrimFunction' _                   = False
+isPrimFunction' BonlangPrimFunc {} = True
+isPrimFunction' _                  = False
 
-isPrimIOFunction (BonlangPrimIOFunc _) = True
-isPrimIOFunction _                     = False
+isPrimIOFunction BonlangPrimIOFunc {} = True
+isPrimIOFunction _                    = False

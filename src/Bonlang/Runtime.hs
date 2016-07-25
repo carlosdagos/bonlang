@@ -91,13 +91,18 @@ startEval _ _ = Except.throwE cantStartNonModule
 
 eval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 eval s (BonlangDirective dir)  = evalDirective s dir
-eval s (BonlangBlock is)       = last <$> sequence (fmap (eval s) is)
+eval s (BonlangBlock is)       = do l' <- last <$> sequence (fmap (eval s) is)
+                                    eval s l'
 eval s ref@BonlangRefLookup {} = getReference s ref
 eval _ x@BonlangString {}      = return x
 eval _ x@BonlangNumber {}      = return x
 eval _ x@BonlangBool {}        = return x
+eval _ x@BonlangPrimFunc {}    = return x
+eval _ x@BonlangPrimIOFunc {}  = return x
 eval s (BonlangList xs)        = do xs' <- sequence $ fmap (eval s) xs
-                                    return $ BonlangList xs'
+                                    if all isScalar xs'
+                                       then return $ BonlangList xs'
+                                       else eval s (BonlangList xs')
 eval s x@BonlangAlias {}       = defineReference s x
 eval s (BonlangFuncApply r ps)
   = do resolved <- eval s r
@@ -120,9 +125,9 @@ evalClosure s c@BonlangClosure {} ps
   = do s' <- liftIO $ IORef.readIORef s
        if notEnoughParams
           then return BonlangClosure { cParams = cParams c
-                                      , cEnv    = Map.union (cEnv c) newParams'
-                                      , cBody   = cBody c
-                                      }
+                                     , cEnv    = Map.union (cEnv c) newParams'
+                                     , cBody   = cBody c
+                                     }
           else if tooManyParams
                then Except.throwE $ DefaultError "Too many params applied"
                else do let rScope = Map.union s' newParams'

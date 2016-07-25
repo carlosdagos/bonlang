@@ -34,4 +34,4 @@ main = do
     case d of
       (Left err) ->    hPutStrLn stderr ("Runtime error: " `mappend` show err)
                     >> exitFailure
-      (Right _)  -> exitSuccess
+      (Right _)  ->    exitSuccess
