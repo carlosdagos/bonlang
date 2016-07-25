@@ -179,7 +179,7 @@ moduleDef
            }
   where
     nameAndValue :: Lang.BonlangValue -> (String, Lang.BonlangValue)
-    nameAndValue x@(Lang.BonlangFunc _ _ _ _) = (Lang.fName x, x)
+    nameAndValue x@Lang.BonlangFunc {} = (Lang.fName x, x)
     nameAndValue _ = error "Panic: This should never happen"
 
 
