@@ -38,8 +38,9 @@ isDouble _                         = False
 isList BonlangList {} = True
 isList _              = False
 
-isFunction BonlangFunc {} = True
-isFunction _              = False
+isFunction BonlangFunc {}    = True
+isFunction BonlangClosure {} = True
+isFunction _                 = False
 
 isPrimFunction BonlangPrimFunc {}   = True
 isPrimFunction BonlangPrimIOFunc {} = True

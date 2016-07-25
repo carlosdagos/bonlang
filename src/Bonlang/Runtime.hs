@@ -97,25 +97,36 @@ eval s ref@BonlangRefLookup {} = getReference s ref
 eval _ x@BonlangString {}      = return x
 eval _ x@BonlangNumber {}      = return x
 eval _ x@BonlangBool {}        = return x
-eval _ x@BonlangPrimFunc {}    = return x
-eval _ x@BonlangPrimIOFunc {}  = return x
-eval s (BonlangList xs)        = do xs' <- sequence $ fmap (eval s) xs
-                                    if all isScalar xs'
-                                       then return $ BonlangList xs'
-                                       else eval s (BonlangList xs')
+eval s (BonlangList xs)        = evalList s xs
 eval s x@BonlangAlias {}       = defineReference s x
 eval s (BonlangFuncApply r ps)
-  = do resolved <- eval s r
-       if isPrimFunction resolved
-          then runPrim resolved s ps
-          else case resolved of
-                 x@BonlangClosure {} -> evalClosure s x ps
-                 _ -> error "TODO: func apply for non primary"
+  = do ref' <- getReference s r
+       if isReduced ref'
+          then do evaledPs <- evalList s ps
+                  if isPrimFunction ref'
+                     then runPrim ref' s (unList evaledPs)
+                     else case ref' of
+                            x@BonlangClosure {} -> evalClosure s x ps
+                            _ -> error "TODO: func apply for non primary"
+          else do evald' <- eval s ref'
+                  eval s (BonlangFuncApply evald' ps)
+    where
+        isReduced x = or [ isScalar x
+                         , isFunction x
+                         , isPrimFunction x
+                         ]
 eval s f@BonlangFunc {}
   = if fName f == "main"
        then eval s (fDef f)
        else defineReference s f
-eval _ x = Except.throwE $ InternalTypeMismatch "Don't know how to eval" [x]
+eval _ x
+  = Except.throwE $ InternalTypeMismatch "Don't know how to eval" [x]
+
+evalList :: Scope -> [BonlangValue] -> IOThrowsException BonlangValue
+evalList s xs = do xs' <- sequence $ fmap (eval s) xs
+                   if all isScalar xs'
+                      then return $ BonlangList xs'
+                      else evalList s xs'
 
 evalClosure :: Scope
             -> BonlangValue
@@ -130,9 +141,12 @@ evalClosure s c@BonlangClosure {} ps
                                      }
           else if tooManyParams
                then Except.throwE $ DefaultError "Too many params applied"
-               else do let rScope = Map.union s' newParams'
+               else do let cBody' = cBody c
+                       let rScope = Map.union s' newParams'
                        s'' <- liftIO $ IORef.newIORef rScope
-                       eval s'' (cBody c)
+                       case cBody' of
+                         BonlangClosure {} -> evalClosure s'' cBody' (map snd (Map.toList newParams'))
+                         _                 -> eval s'' cBody'
     where
         notEnoughParams = existingArgs + length ps < length (cParams c)
         tooManyParams   = existingArgs + length ps > length (cParams c)

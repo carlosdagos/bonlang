@@ -98,7 +98,7 @@ paramsList = brackets $ P.commaSep bonlang identifier
 
 closure :: BonlangParsec u BonlangValue
 closure = do _ <- lexeme $ reserved "lambda"
-             params <- lexeme $ paramsList
+             params <- lexeme paramsList
              _ <- reservedOp "=>"
              bExp   <- simpleExpression
              return Lang.BonlangClosure { cParams = params
