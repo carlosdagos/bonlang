@@ -1,0 +1,16 @@
+module Main where
+
+/**
+ * Adds two values
+ */
+def addValues [x, y] = + $ x y
+
+/**
+ * Returns a lambda
+ */
+def add2 [x1] = addValues $ 2
+
+def main [] = {
+    val four = add2 $ 2;
+    puts-ln $ four;              // Will output '4'
+}

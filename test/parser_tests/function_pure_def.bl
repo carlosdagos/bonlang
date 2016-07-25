@@ -1,0 +1,5 @@
+/*
+ * This file just declares a pure function
+ */
+
+def applyWhatever [f, x] = f $ x (notherFunc $ 3.1415)
