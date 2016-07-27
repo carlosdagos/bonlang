@@ -4,7 +4,6 @@
 import           Bonlang.Lang
 import           Bonlang.Lexer
 import           Data.Aeson
-import qualified Data.ByteString               as B
 import           Data.Maybe                    (fromJust)
 import qualified Data.Text                     as T
 import qualified Data.Text.Encoding            as E
@@ -15,7 +14,6 @@ import           System.FilePath
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Text.ParserCombinators.Parsec
-import Debug.Trace as D
 
 data TestFile = TestFile { meta :: T.Text
                          , code :: T.Text
@@ -54,7 +52,7 @@ runTestFile :: TestFile -> Assertion
 runTestFile testFile
   = do output'         <- programOutput
        expectedOutput' <- expectedOutput
-       output' @?= (output $ fromJust expectedOutput')
+       output' @?= output (fromJust expectedOutput')
     where
         programOutput = return "" :: IO String
         expectedOutput
