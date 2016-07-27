@@ -1,3 +1,7 @@
+---
+output: "4\n"
+---
+
 module Main where
 
 /**
@@ -8,7 +12,7 @@ def addValues [x, y] = + $ x y
 /**
  * Returns a lambda
  */
-def add2 [x1] = addValues $ 2
+def add2 [] = addValues $ 2
 
 def main [] = {
     val four = add2 $ 2;

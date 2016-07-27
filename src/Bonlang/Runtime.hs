@@ -87,7 +87,7 @@ startEval s (BonlangDirective dir@(ModuleDef m is at))
                else Except.throwE $ noMainModule at
     where
         hasMain moduleDefs = isJust $ Map.lookup "main" moduleDefs
-startEval _ _ = Except.throwE cantStartNonModule
+startEval _ x = Except.throwE $ cantStartNonModule x
 
 eval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 eval s (BonlangDirective dir)  = evalDirective s dir
@@ -145,13 +145,14 @@ evalClosure s c@BonlangClosure {} ps
                        let rScope = Map.union s' newParams'
                        s'' <- liftIO $ IORef.newIORef rScope
                        case cBody' of
-                         BonlangClosure {} -> evalClosure s'' cBody' (map snd (Map.toList newParams'))
+                         BonlangClosure {} -> evalClosure s'' cBody' newArgs
                          _                 -> eval s'' cBody'
     where
         notEnoughParams = existingArgs + length ps < length (cParams c)
         tooManyParams   = existingArgs + length ps > length (cParams c)
         existingArgs    = length (Map.toList (cEnv c))
         newParams'      = Map.fromList (zip (drop existingArgs $ cParams c) ps)
+        newArgs         = map snd $ Map.toList newParams'
 evalClosure _ x _
   = Except.throwE $ InternalTypeMismatch "Can't eval non closure" [x]
 

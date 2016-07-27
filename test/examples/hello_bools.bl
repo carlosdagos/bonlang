@@ -1,3 +1,7 @@
+---
+output: "Hello Bool! 0"
+---
+
 module Main where
 
 def three [] = 3

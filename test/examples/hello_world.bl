@@ -1,3 +1,7 @@
+---
+output: "Gonna say...\nHello World!\n"
+---
+
 module Main where
 
 def main [] = {

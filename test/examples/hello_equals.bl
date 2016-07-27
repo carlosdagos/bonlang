@@ -1,3 +1,7 @@
+---
+output: "Testing this...\nIs equal? True\nWhat was equal... 2"
+---
+
 module Main where
 
 def main [] = {

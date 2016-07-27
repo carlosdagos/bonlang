@@ -1,3 +1,7 @@
+---
+output: "4\n4\n"
+---
+
 module Main where
 
 /**

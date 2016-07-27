@@ -1,5 +1,8 @@
-module Main where
+---
+output: "1\n2\n3\n"
+---
 
+module Main where
 
 def main [] = {
     val λ = lambda [x, y, z] => map $ puts-ln [x, y, z];

@@ -1,3 +1,7 @@
+---
+output: "Lazy Hello!\n"
+---
+
 module Main where
 
 def main [] = {
