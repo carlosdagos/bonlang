@@ -15,8 +15,6 @@ import qualified Data.Text.Encoding            as E
 import qualified Data.Yaml                     as Y
 import           GHC.Generics
 import           System.Directory
-import           System.Environment
-import           System.Exit
 import           System.FilePath
 import           System.IO
 import           Test.Tasty
@@ -102,9 +100,11 @@ runTestFile testFile
                let testOutput = B.BonHandle tempH
 
                s <- B.primitiveBindings testInput testOutput
-               _ <- evalString s ((T.unpack . code) testFile)
+               d <- evalString s ((T.unpack . code) testFile)
                hClose tempH
-               readFile tempFile
+               case d of
+                 Right _ -> readFile tempFile
+                 Left  _ -> return $ show d
 
         expectedOutput
           = let tioSource = E.encodeUtf8 $ meta testFile in
