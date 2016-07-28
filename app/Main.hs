@@ -27,10 +27,14 @@ evalString scope expr = runExceptT $ B.liftThrows (readExpr expr)
 
 main :: IO ()
 main = do
+    let input  = B.BonHandle stdin
+    let output = B.BonHandle stdout
+
     file  <- fmap head getArgs
     c     <- readFile file
-    s     <- B.primitiveBindings
+    s     <- B.primitiveBindings input output
     d     <- evalString s c
+
     case d of
       (Left err) ->    hPutStrLn stderr ("Runtime error: " `mappend` show err)
                     >> exitFailure

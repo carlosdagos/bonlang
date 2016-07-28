@@ -13,15 +13,19 @@ import qualified Data.Text                  as T
 import           Prelude                    hiding (print)
 import qualified System.IO                  as IO
 
-ioOutput :: (BonlangValue -> IO ()) -> [BonlangValue] -> IOThrowsException BonlangValue
+ioOutput :: (BonlangValue -> IO ())
+         -> [BonlangValue]
+         -> IOThrowsException BonlangValue
 ioOutput _ [] = Except.throwE $ NumArgs 0 []
 ioOutput f xs = do _ <- liftIO $ mapM f xs
                    return $ BonlangBool True
 
-print, puts, putsln :: [BonlangValue] -> IOThrowsException BonlangValue
-print  = ioOutput IO.print
-puts   = dPuts IO.putStr
-putsln = dPuts IO.putStrLn
+print, puts, putsln :: IO.Handle
+                    -> [BonlangValue]
+                    -> IOThrowsException BonlangValue
+print  h = ioOutput (IO.hPrint h)
+puts   h = dPuts    (IO.hPutStr h)
+putsln h = dPuts    (IO.hPutStrLn h)
 
 dPuts :: (String -> IO ()) -> [BonlangValue] -> IOThrowsException BonlangValue
 dPuts f x = let ms = map toString x in

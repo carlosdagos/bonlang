@@ -2,6 +2,9 @@
 
 module Bonlang.Runtime
     ( Scope
+    , BonHandle(..)
+    , OutputHandle
+    , InputHandle
     , eval
     , startEval
     , nullScope
@@ -23,6 +26,10 @@ import qualified Data.Map                   as M
 import qualified Data.Map                   as Map
 import           Data.Maybe                 (fromJust, isJust)
 import qualified System.IO                  as IO
+
+data OutputHandle
+data InputHandle
+data BonHandle a  = BonHandle IO.Handle
 
 type Bindings = M.Map String BonlangValue
 type Scope    = IORef.IORef Bindings
@@ -62,11 +69,12 @@ defineReference scope x
       error' bad = Except.throwE $
           InternalTypeMismatch "Can't define reference" [bad]
 
-primitiveBindings :: IO Scope
-primitiveBindings = nullScope >>= flip bindVars (Map.fromList primitives')
+primitiveBindings :: BonHandle InputHandle -> BonHandle OutputHandle -> IO Scope
+primitiveBindings (BonHandle _) (BonHandle out)
+  = nullScope >>= flip bindVars (Map.fromList primitives')
     where
         makeFunc c (v, f) = (v, c f)
-        primitives'       = fmap (makeFunc BonlangPrimIOFunc) ioPrimitives
+        primitives'       = fmap (makeFunc BonlangPrimIOFunc) (ioPrimitives out)
                          ++ fmap (makeFunc BonlangPrimFunc) primitives
 
 bindVars :: Scope -> Map.Map String BonlangValue -> IO Scope

@@ -1,0 +1,10 @@
+---
+output: "Hello World!"
+---
+
+module Main where
+
+def main [] = {
+    val print' = puts $ "Hello World!";
+    print'; // Needs evaluation to happen
+}
