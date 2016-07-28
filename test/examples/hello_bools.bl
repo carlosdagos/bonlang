@@ -1,5 +1,5 @@
 ---
-output: "Hello Bool! 0"
+output: "Hello Bool! True"
 ---
 
 module Main where

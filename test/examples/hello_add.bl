@@ -1,5 +1,5 @@
 ---
-output: "0"
+output: "Hello! Computing some stuff: 0"
 ---
 
 module Main where
