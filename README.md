@@ -32,7 +32,7 @@ Basically, your basic `hello-world` looks like this:
 module Main where
 
 def main [] = {
-    print $ "Hello World!"
+    print $ "Hello World!";
 }
 ```
 
@@ -50,7 +50,7 @@ module Main where
 
 def main [] = {
     val sayHello = puts-ln $ "Hello World!";
-    puts-ln $ "Lazy Hello!"
+    puts-ln $ "Lazy Hello!";
 }
 ```
 
@@ -129,6 +129,8 @@ Carlos D'Agostino.
 You can visit my blog here https://cdagostino.io
 
 [Disclaimer](doc/images/noidea.png).
+
+[About my fixation with the number 4](https://xkcd.com/221/).
 
 ## LICENSE
 

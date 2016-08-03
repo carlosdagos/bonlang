@@ -50,12 +50,7 @@ data BonlangValue = BonlangList       { unList :: [BonlangValue] }
                                       , valueTrue  :: BonlangValue
                                       , valueFalse :: BonlangValue
                                       }
-                  | BonlangFunc       { fName       :: String
-                                      , fParameters :: [String]
-                                      , fDef        :: BonlangValue
-                                      , fDefinedAt  :: SourcePos
-                                      }
-                  | BonlangClosure    { cParams :: [String]
+                  | BonlangClosure    { cParams :: ParamsList
                                       , cEnv    :: Bindings
                                       , cBody   :: BonlangValue
                                       }

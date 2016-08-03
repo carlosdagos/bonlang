@@ -26,7 +26,6 @@ import qualified Data.IORef                 as IORef
 import qualified Data.Map                   as M
 import qualified Data.Map                   as Map
 import           Data.Maybe                 (fromJust, isJust)
-import qualified Debug.Trace                as D
 import qualified System.IO                  as IO
 
 data OutputHandle
@@ -57,7 +56,6 @@ defineReference :: Scope
 defineReference scope x
   = case x of
       (BonlangAlias name value) -> define' name value
-      (BonlangFunc fn _ fdef _) -> define' fn fdef
       bad                       -> error' bad
   where
       define' name value =
@@ -99,21 +97,17 @@ startEval s (BonlangDirective dir@(ModuleDef m _ is at))
         hasMain moduleDefs = isJust $ Map.lookup "main" moduleDefs
 startEval _ x = Except.throwE $ cantStartNonModule x
 
-trace :: String -> a -> a
-trace s a = a
-
 eval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
-eval _ x@BonlangString {}      = trace "eval: string" $ return x
-eval _ x@BonlangNumber {}      = trace "eval: number" $ return x
-eval _ x@BonlangBool {}        = trace "eval: bool"   $ return x
-eval s (BonlangDirective dir)  = trace "eval: directive" $ evalDirective s dir
-eval s (BonlangBlock is)       = trace "eval: block" $
-                                 do l <- last <$> sequence (fmap (eval s) is)
+eval _ x@BonlangString {}      = return x
+eval _ x@BonlangNumber {}      = return x
+eval _ x@BonlangBool {}        = return x
+eval s (BonlangDirective dir)  = evalDirective s dir
+eval s (BonlangBlock is)       = do l <- last <$> sequence (fmap (eval s) is)
                                     evalUntilReduced s l
-eval s (BonlangList xs)        = trace ("eval: list: " ++ show xs) $ evalList s xs
-eval s x@BonlangRefLookup {}   = trace ("eval: get reference: " ++ show x) $ getReference s x
-eval s x@BonlangAlias {}       = trace ("eval: set reference: " ++ show x) $ defineReference s x
+eval s (BonlangList xs)        = evalList s xs
+eval s x@BonlangRefLookup {}   = getReference s x
 eval _ x@BonlangPrimIOFunc {}  = return x
+eval _ x@BonlangPrimFunc {}    = return x
 eval s (BonlangFuncApply x@(BonlangPrimFunc _) ps)
   = do evaledPs <- evalList s ps
        runPrim x s evaledPs
@@ -121,8 +115,7 @@ eval s (BonlangFuncApply x@(BonlangPrimIOFunc _) ps)
   = do evaledPs <- evalList s ps
        runPrim x s evaledPs
 eval s (BonlangFuncApply r ps)
-  = trace ("eval: apply function: " ++ show r) $
-    do ref' <- getReference s r
+  = do ref' <- getReference s r
        if isReduced ref'
           then do evaledPs <- evalList s ps
                   if isPrimFunction ref'
@@ -130,11 +123,10 @@ eval s (BonlangFuncApply r ps)
                      else evalClosure s ref' ps
           else do evald' <- eval s ref'
                   eval s (BonlangFuncApply evald' ps)
-eval s f@BonlangFunc {}
-  = trace "eval: func" $
-    if fName f == "main"
-       then eval s (fDef f)
-       else defineReference s f
+eval s x@BonlangAlias {}
+  = if aliasName x == "main"
+       then eval s (aliasExpression x)
+       else defineReference s x
 eval _ x
   = Except.throwE $ InternalTypeMismatch "Don't know how to eval" [x]
 
@@ -146,10 +138,8 @@ evalUntilReduced :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 evalUntilReduced s = Loops.iterateUntilM isReduced (eval s)
 
 isReduced :: BonlangValue -> Bool
-isReduced (BonlangList xs) = let x = all isReduced xs
-                             in trace ("isReduced: list: " ++ show xs ++ " reduced? " ++ show x) x
-isReduced x = let x' = isScalar x || isFunction x || isPrimFunction x
-              in trace ("isReduced: other: " ++ show x ++ " reduced? " ++ show x') x'
+isReduced (BonlangList xs) = all isReduced xs
+isReduced x = isScalar x || isFunction x || isPrimFunction x
 
 evalClosure :: Scope
             -> BonlangValue
@@ -194,7 +184,7 @@ runPrim x _ _
 evalDirective :: Scope -> BonlangDirectiveType -> IOThrowsException BonlangValue
 evalDirective s (ModuleDef _ _ is _)
   = do sequence_ (fmap (\(_, f) -> defineReference s f) is')
-       evalClosure s (fDef . fromJust $ Map.lookup "main" is) []
+       evalClosure s (aliasExpression . fromJust $ Map.lookup "main" is) []
     where
         is' = filter (\(f,_) -> f /= "main") (Map.toList is)
 evalDirective _ (ModuleImport _) = error "TODO: Module imports"

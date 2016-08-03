@@ -150,16 +150,13 @@ pureFunctionDef :: BonlangParsec u L.BonlangValue
 pureFunctionDef
   = functionDef $ \funName funParams -> do
       fDef' <- expression
-      defAt <- Parsec.getPosition
-      return L.BonlangFunc { L.fName       = funName
-                           , L.fParameters = funParams
-                           , L.fDef        = L.BonlangClosure
-                                   { L.cParams = funParams
-                                   , L.cBody   = fDef'
-                                   , L.cEnv    = Map.fromList []
-                                   }
-                           , L.fDefinedAt  = defAt
-                           }
+      return L.BonlangAlias { L.aliasName       = funName
+                            , L.aliasExpression = L.BonlangClosure
+                                 { L.cParams = funParams
+                                 , L.cBody   = fDef'
+                                 , L.cEnv    = Map.fromList []
+                                 }
+                            }
 
 -- The idea is to have more than just functions in the module
 -- in the future... but ok like this for now
@@ -181,7 +178,7 @@ moduleDef
            }
   where
     nameAndValue :: L.BonlangValue -> (String, L.BonlangValue)
-    nameAndValue x@L.BonlangFunc {} = (L.fName x, x)
+    nameAndValue x@L.BonlangAlias {} = (L.aliasName x, x)
     nameAndValue _ = error "Panic: This should never happen"
     importStatements :: BonlangParsec u L.BonlangDirectiveType
     importStatements = fmap L.ModuleImport $ reserved "import" *> identifier

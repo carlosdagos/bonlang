@@ -33,4 +33,3 @@ isEqual' :: [BonlangValue] -> ThrowsError BonlangValue
 isEqual' []     = Error.throwError $ NumArgs 0 []
 isEqual' [_]    = Error.throwError $ NumArgs 1 []
 isEqual' (x:xs) = Right $ BonlangBool (all (x ==) xs)
-

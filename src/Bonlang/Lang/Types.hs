@@ -38,7 +38,6 @@ isDouble _                         = False
 isList BonlangList {} = True
 isList _              = False
 
-isFunction BonlangFunc {}    = True
 isFunction BonlangClosure {} = True
 isFunction _                 = False
 
