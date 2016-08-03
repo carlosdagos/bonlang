@@ -31,12 +31,13 @@ type PrimIOFunc        = [BonlangValue] -> IOThrowsException BonlangValue
 type Bindings          = M.Map String BonlangValue
 
 data BonlangDirectiveType
-    = ModuleDef { moduleName  :: String
-                , moduleItems :: Bindings
-                , mDefinedAt  :: SourcePos
+    = ModuleDef { moduleName    :: String
+                , moduleImports :: [BonlangDirectiveType]
+                , moduleItems   :: Bindings
+                , mDefinedAt    :: SourcePos
                 }
    | ModuleImport { moduleName :: String }
-   | Noop
+   | NoOp
    deriving (Show)
 
 -------------------------------------------------------------------------------
@@ -45,7 +46,7 @@ data BonlangValue = BonlangList       { unList :: [BonlangValue] }
                   | BonlangNumber     { unNumber :: BonlangNum }
                   | BonlangString     { unString :: T.Text }
                   | BonlangBool       { unBool :: Bool }
-                  | BonlangIfThenElse { predicate  :: BonlangValue
+                  | BonlangIfThenElse { condition  :: BonlangValue
                                       , valueTrue  :: BonlangValue
                                       , valueFalse :: BonlangValue
                                       }
@@ -90,7 +91,7 @@ isEqual (BonlangString x) (BonlangString y) = x == y
 isEqual (BonlangNumber x) (BonlangNumber y) = x == y
 isEqual (BonlangBool x)   (BonlangBool y)   = x == y
 isEqual (BonlangList x)   (BonlangList y)   = x == y
-isEqual _ _                                 = False
+isEqual x y                                 = error $ "Can't do this\n" ++ show x ++ "\n" ++ show y
 
 instance Show PrimFunc where
     show _ = "<bonlang:primitive function>"

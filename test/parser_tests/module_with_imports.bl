@@ -1,0 +1,10 @@
+module BonlangTest where
+
+// This module has imports
+
+import AnotherModule
+import That.Other.Module
+
+def main [] = {
+    puts-ln $ "Imported stuff!";
+}

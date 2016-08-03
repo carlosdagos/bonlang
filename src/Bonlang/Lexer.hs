@@ -1,6 +1,6 @@
 module Bonlang.Lexer where
 
-import           Bonlang.Lang          as Lang
+import qualified Bonlang.Lang          as L
 import           Data.Functor.Identity
 import qualified Data.Map              as Map
 import qualified Data.Text             as T
@@ -65,15 +65,15 @@ brackets = P.brackets bonlang
 braces :: BonlangParsec u a -> BonlangParsec u a
 braces = P.braces bonlang
 
-string :: BonlangParsec u Lang.BonlangValue
-string = Lang.BonlangString . T.pack <$> P.stringLiteral bonlang
+string :: BonlangParsec u L.BonlangValue
+string = L.BonlangString . T.pack <$> P.stringLiteral bonlang
 
-number :: BonlangParsec u Lang.BonlangValue
-number = Lang.BonlangNumber <$> P.naturalOrFloat bonlang
+number :: BonlangParsec u L.BonlangValue
+number = L.BonlangNumber <$> P.naturalOrFloat bonlang
 
-boolean :: BonlangParsec u Lang.BonlangValue
-boolean =  (reserved "true"  >> return (Lang.BonlangBool True))
-       <|> (reserved "false" >> return (Lang.BonlangBool False))
+boolean :: BonlangParsec u L.BonlangValue
+boolean =  (reserved "true"  >> return (L.BonlangBool True))
+       <|> (reserved "false" >> return (L.BonlangBool False))
 
 operator :: BonlangParsec u String
 operator = P.operator bonlang
@@ -84,11 +84,11 @@ reservedOp = P.reservedOp bonlang
 identifier :: BonlangParsec u String
 identifier = P.identifier bonlang
 
-refIdentifier :: BonlangParsec u Lang.BonlangValue
-refIdentifier =  Lang.BonlangRefLookup <$> identifier
+refIdentifier :: BonlangParsec u L.BonlangValue
+refIdentifier =  L.BonlangRefLookup <$> identifier
 
-list :: BonlangParsec u Lang.BonlangValue
-list = Lang.BonlangList <$> brackets (P.commaSep bonlang expression)
+list :: BonlangParsec u L.BonlangValue
+list = L.BonlangList <$> brackets (P.commaSep bonlang expression)
 
 whiteSpace :: BonlangParsec u ()
 whiteSpace = P.whiteSpace bonlang
@@ -96,45 +96,45 @@ whiteSpace = P.whiteSpace bonlang
 paramsList :: BonlangParsec u [String]
 paramsList = brackets $ P.commaSep bonlang identifier
 
-closure :: BonlangParsec u BonlangValue
+closure :: BonlangParsec u L.BonlangValue
 closure = do _ <- lexeme $ reserved "lambda"
              params <- lexeme paramsList
              _ <- reservedOp "=>"
              bExp   <- simpleExpression
-             return Lang.BonlangClosure { cParams = params
-                                        , cBody   = bExp
-                                        , cEnv    = Map.fromList []
+             return L.BonlangClosure { L.cParams = params
+                                        , L.cBody   = bExp
+                                        , L.cEnv    = Map.fromList []
                                         }
 
-conditional :: BonlangParsec u Lang.BonlangValue
+conditional :: BonlangParsec u L.BonlangValue
 conditional = do reserved "if"
                  condition <- simpleExpression
                  reserved "then"
                  trueExpr  <- simpleExpression
                  reserved "else"
                  falseExpr <- simpleExpression
-                 return Lang.BonlangIfThenElse { predicate  = condition
-                                               , valueTrue  = trueExpr
-                                               , valueFalse = falseExpr
-                                               }
+                 return L.BonlangIfThenElse { L.condition  = condition
+                                            , L.valueTrue  = trueExpr
+                                            , L.valueFalse = falseExpr
+                                            }
 
-aliasAssign :: BonlangParsec u Lang.BonlangValue
+aliasAssign :: BonlangParsec u L.BonlangValue
 aliasAssign = do reserved "val"
                  aName  <- identifier
                  reservedOp "="
                  aValue <- simpleExpression
-                 return Lang.BonlangAlias { aliasName       = aName
-                                          , aliasExpression = aValue
-                                          }
+                 return L.BonlangAlias { L.aliasName       = aName
+                                       , L.aliasExpression = aValue
+                                       }
 
 -- TODO: This is fugly
-instructionBlock :: BonlangParsec u Lang.BonlangValue
+instructionBlock :: BonlangParsec u L.BonlangValue
 instructionBlock
   = lexeme $ do _ <- symbol "{"
                 e <- actions `Parsec.sepEndBy` symbol ";"
                 _ <- symbol "}"
                 return e
-    >>= \x -> return Lang.BonlangBlock { instructions = x }
+    >>= \x -> return L.BonlangBlock { L.instructions = x }
     where
         actions = do whiteSpace
                      lexeme $ aliasAssign <|> simpleExpression
@@ -146,58 +146,63 @@ functionDef f = Parsec.try $ do reserved "def"
                                 _ <- lexeme $ Parsec.char '='
                                 Parsec.try $ f funName funParams
 
-pureFunctionDef :: BonlangParsec u Lang.BonlangValue
+pureFunctionDef :: BonlangParsec u L.BonlangValue
 pureFunctionDef
   = functionDef $ \funName funParams -> do
       fDef' <- expression
       defAt <- Parsec.getPosition
-      return BonlangFunc { fName       = funName
-                         , fParameters = funParams
-                         , fDef        = Lang.BonlangClosure
-                             { cParams = funParams
-                             , cBody   = fDef'
-                             , cEnv    = Map.fromList []
-                             }
-                         , fDefinedAt  = defAt
-                         }
+      return L.BonlangFunc { L.fName       = funName
+                           , L.fParameters = funParams
+                           , L.fDef        = L.BonlangClosure
+                                   { L.cParams = funParams
+                                   , L.cBody   = fDef'
+                                   , L.cEnv    = Map.fromList []
+                                   }
+                           , L.fDefinedAt  = defAt
+                           }
 
 -- The idea is to have more than just functions in the module
 -- in the future... but ok like this for now
-moduleDef :: BonlangParsec u Lang.BonlangValue
+moduleDef :: BonlangParsec u L.BonlangValue
 moduleDef
   = do pos <- Parsec.getPosition
        reserved "module"
        mName <- identifier
        reserved "where"
-       fs <- Parsec.manyTill pureFunctionDef Parsec.eof
-       return Lang.BonlangDirective
-           { directive = Lang.ModuleDef
-                         { moduleName  = mName
-                         , moduleItems = Map.fromList (map nameAndValue fs)
-                         , mDefinedAt  = pos
-                         }
+       mImports <- Parsec.many importStatements
+       fs       <- Parsec.manyTill pureFunctionDef Parsec.eof
+       return L.BonlangDirective
+           { L.directive = L.ModuleDef
+               { L.moduleName    = mName
+               , L.moduleImports = mImports
+               , L.moduleItems   = Map.fromList (map nameAndValue fs)
+               , L.mDefinedAt    = pos
+               }
            }
   where
-    nameAndValue :: Lang.BonlangValue -> (String, Lang.BonlangValue)
-    nameAndValue x@Lang.BonlangFunc {} = (Lang.fName x, x)
+    nameAndValue :: L.BonlangValue -> (String, L.BonlangValue)
+    nameAndValue x@L.BonlangFunc {} = (L.fName x, x)
     nameAndValue _ = error "Panic: This should never happen"
+    importStatements :: BonlangParsec u L.BonlangDirectiveType
+    importStatements = fmap L.ModuleImport $ reserved "import" *> identifier
 
 
-functionApply :: BonlangParsec u Lang.BonlangValue
+
+functionApply :: BonlangParsec u L.BonlangValue
 functionApply = do funName   <- Parsec.try $ refIdentifier <* reservedOp "$"
                    funParams <- Parsec.many simpleExpression
-                   return Lang.BonlangFuncApply { fResolver = funName
-                                                , fParams   = funParams
-                                                }
+                   return L.BonlangFuncApply { L.fResolver = funName
+                                             , L.fParams   = funParams
+                                             }
 
-scalarExpression :: BonlangParsec u Lang.BonlangValue
+scalarExpression :: BonlangParsec u L.BonlangValue
 scalarExpression =  parenthesis scalarExpression
                 <|> string
                 <|> number
                 <|> list
                 <|> boolean
 
-simpleExpression :: BonlangParsec u Lang.BonlangValue
+simpleExpression :: BonlangParsec u L.BonlangValue
 simpleExpression =  parenthesis simpleExpression
                 <|> scalarExpression
                 <|> functionApply
@@ -206,11 +211,11 @@ simpleExpression =  parenthesis simpleExpression
                 <|> instructionBlock
                 <|> closure
 
-expression :: BonlangParsec u Lang.BonlangValue
+expression :: BonlangParsec u L.BonlangValue
 expression =  parenthesis expression
           <|> simpleExpression
           <|> aliasAssign
           <|> pureFunctionDef
 
-bonlangParser :: BonlangParsec u Lang.BonlangValue
+bonlangParser :: BonlangParsec u L.BonlangValue
 bonlangParser = whiteSpace >> (moduleDef <|> expression)

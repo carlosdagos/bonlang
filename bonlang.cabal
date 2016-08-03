@@ -37,6 +37,7 @@ library
                      , bytestring
                      , containers
                      , mtl
+                     , monad-loops
                      , transformers
   default-language:    Haskell2010
 
@@ -53,7 +54,24 @@ executable bonlang
                      , bytestring
                      , containers
                      , mtl
+                     , monad-loops
   default-language:    Haskell2010
+
+executable bonlang-ast
+  hs-source-dirs:      app
+  main-is:             Ast.hs
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , parsec
+                     , bonlang
+                     , mtl
+                     , transformers
+                     , text
+                     , bytestring
+                     , containers
+                     , mtl
+  default-language:    Haskell2010
+
 
 test-suite bonlang-test
   type:                exitcode-stdio-1.0
@@ -74,6 +92,7 @@ test-suite bonlang-test
                      , text
                      , bytestring
                      , mtl
+                     , monad-loops
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -fprof-auto
   default-language:    Haskell2010
 

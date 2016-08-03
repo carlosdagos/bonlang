@@ -8,4 +8,3 @@ def main [] = {
     val λ = lambda [x, y, z] => map $ puts-ln [x, y, z];
     λ $ 1 2 3;
 }
-

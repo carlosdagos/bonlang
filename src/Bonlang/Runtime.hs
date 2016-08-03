@@ -20,11 +20,13 @@ import           Bonlang.Lang
 import           Bonlang.Lang.Types
 import           Bonlang.Runtime.Primitives
 import           Control.Monad.IO.Class     (liftIO)
+import qualified Control.Monad.Loops        as Loops
 import           Control.Monad.Trans.Except as Except
 import qualified Data.IORef                 as IORef
 import qualified Data.Map                   as M
 import qualified Data.Map                   as Map
 import           Data.Maybe                 (fromJust, isJust)
+import qualified Debug.Trace                as D
 import qualified System.IO                  as IO
 
 data OutputHandle
@@ -87,7 +89,7 @@ bindVars scope bindings
         addBinding t@(_, _)  = return t
 
 startEval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
-startEval s (BonlangDirective dir@(ModuleDef m is at))
+startEval s (BonlangDirective dir@(ModuleDef m _ is at))
   = if m == "Main"
        then if hasMain is
                then evalDirective s dir
@@ -97,44 +99,57 @@ startEval s (BonlangDirective dir@(ModuleDef m is at))
         hasMain moduleDefs = isJust $ Map.lookup "main" moduleDefs
 startEval _ x = Except.throwE $ cantStartNonModule x
 
+trace :: String -> a -> a
+trace s a = a
+
 eval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
-eval s (BonlangDirective dir)  = evalDirective s dir
-eval s (BonlangBlock is)       = do l' <- last <$> sequence (fmap (eval s) is)
-                                    eval s l'
-eval s ref@BonlangRefLookup {} = getReference s ref
-eval _ x@BonlangString {}      = return x
-eval _ x@BonlangNumber {}      = return x
-eval _ x@BonlangBool {}        = return x
-eval s (BonlangList xs)        = evalList s xs
-eval s x@BonlangAlias {}       = defineReference s x
+eval _ x@BonlangString {}      = trace "eval: string" $ return x
+eval _ x@BonlangNumber {}      = trace "eval: number" $ return x
+eval _ x@BonlangBool {}        = trace "eval: bool"   $ return x
+eval s (BonlangDirective dir)  = trace "eval: directive" $ evalDirective s dir
+eval s (BonlangBlock is)       = trace "eval: block" $
+                                 do l <- last <$> sequence (fmap (eval s) is)
+                                    evalUntilReduced s l
+eval s (BonlangList xs)        = trace ("eval: list: " ++ show xs) $ evalList s xs
+eval s x@BonlangRefLookup {}   = trace ("eval: get reference: " ++ show x) $ getReference s x
+eval s x@BonlangAlias {}       = trace ("eval: set reference: " ++ show x) $ defineReference s x
+eval _ x@BonlangPrimIOFunc {}  = return x
+eval s (BonlangFuncApply x@(BonlangPrimFunc _) ps)
+  = do evaledPs <- evalList s ps
+       runPrim x s evaledPs
+eval s (BonlangFuncApply x@(BonlangPrimIOFunc _) ps)
+  = do evaledPs <- evalList s ps
+       runPrim x s evaledPs
 eval s (BonlangFuncApply r ps)
-  = do ref' <- getReference s r
+  = trace ("eval: apply function: " ++ show r) $
+    do ref' <- getReference s r
        if isReduced ref'
           then do evaledPs <- evalList s ps
                   if isPrimFunction ref'
-                     then runPrim ref' s (unList evaledPs)
-                     else case ref' of
-                            x@BonlangClosure {} -> evalClosure s x ps
-                            _ -> error "TODO: func apply for non primary"
+                     then runPrim ref' s evaledPs
+                     else evalClosure s ref' ps
           else do evald' <- eval s ref'
                   eval s (BonlangFuncApply evald' ps)
-    where
-        isReduced x = or [ isScalar x
-                         , isFunction x
-                         , isPrimFunction x
-                         ]
 eval s f@BonlangFunc {}
-  = if fName f == "main"
+  = trace "eval: func" $
+    if fName f == "main"
        then eval s (fDef f)
        else defineReference s f
 eval _ x
   = Except.throwE $ InternalTypeMismatch "Don't know how to eval" [x]
 
 evalList :: Scope -> [BonlangValue] -> IOThrowsException BonlangValue
-evalList s xs = do xs' <- sequence $ fmap (eval s) xs
-                   if all isScalar xs'
-                      then return $ BonlangList xs'
-                      else evalList s xs'
+evalList s xs = do xs' <- sequence $ evalUntilReduced s <$> xs
+                   return $ BonlangList xs'
+
+evalUntilReduced :: Scope -> BonlangValue -> IOThrowsException BonlangValue
+evalUntilReduced s = Loops.iterateUntilM isReduced (eval s)
+
+isReduced :: BonlangValue -> Bool
+isReduced (BonlangList xs) = let x = all isReduced xs
+                             in trace ("isReduced: list: " ++ show xs ++ " reduced? " ++ show x) x
+isReduced x = let x' = isScalar x || isFunction x || isPrimFunction x
+              in trace ("isReduced: other: " ++ show x ++ " reduced? " ++ show x') x'
 
 evalClosure :: Scope
             -> BonlangValue
@@ -153,8 +168,8 @@ evalClosure s c@BonlangClosure {} ps
                        let rScope = Map.union s' newParams'
                        s'' <- liftIO $ IORef.newIORef rScope
                        case cBody' of
-                         BonlangClosure {} -> evalClosure s'' cBody' newArgs
-                         _                 -> eval s'' cBody'
+                         BonlangClosure {}    -> evalClosure s'' cBody' newArgs
+                         _                    -> eval s'' cBody'
     where
         notEnoughParams = existingArgs + length ps < length (cParams c)
         tooManyParams   = existingArgs + length ps > length (cParams c)
@@ -166,17 +181,18 @@ evalClosure _ x _
 
 runPrim :: BonlangValue
         -> Scope
-        -> [BonlangValue]
+        -> BonlangValue
         -> IOThrowsException BonlangValue
-runPrim (BonlangPrimIOFunc f) s ps = do params <- mapM (eval s) ps
-                                        f params
-runPrim (BonlangPrimFunc f) s ps   = do params <- mapM (eval s) ps
-                                        liftThrows $ f params
+runPrim (BonlangPrimIOFunc f) s (BonlangList ps) = do params <- mapM (eval s) ps
+                                                      f params
+runPrim (BonlangPrimFunc f) s (BonlangList ps)   = do params <- mapM (eval s) ps
+                                                      liftThrows $ f params
 runPrim x _ _
-  = Except.throwE $ TypeMismatch "Can't run primary on non-primary" x
+  = Except.throwE $
+       TypeMismatch "Can't run primary function application on non-primary" x
 
 evalDirective :: Scope -> BonlangDirectiveType -> IOThrowsException BonlangValue
-evalDirective s (ModuleDef _ is _)
+evalDirective s (ModuleDef _ _ is _)
   = do sequence_ (fmap (\(_, f) -> defineReference s f) is')
        evalClosure s (fDef . fromJust $ Map.lookup "main" is) []
     where
@@ -187,4 +203,3 @@ evalDirective _ _                = error "TODO: eval directive undefined"
 liftThrows :: ThrowsError a -> IOThrowsException a
 liftThrows (Left err) = Except.throwE err
 liftThrows (Right x)  = return x
-
