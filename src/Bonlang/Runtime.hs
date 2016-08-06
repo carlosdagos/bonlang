@@ -108,12 +108,12 @@ eval s (BonlangList xs)        = evalList s xs
 eval s x@BonlangRefLookup {}   = getReference s x
 eval _ x@BonlangPrimIOFunc {}  = return x
 eval _ x@BonlangPrimFunc {}    = return x
-eval s (BonlangFuncApply x@(BonlangPrimFunc _) ps)
-  = do evaledPs <- evalList s ps
-       runPrim x s evaledPs
-eval s (BonlangFuncApply x@(BonlangPrimIOFunc _) ps)
-  = do evaledPs <- evalList s ps
-       runPrim x s evaledPs
+eval s (BonlangFuncApply x@BonlangPrimFunc {} ps)
+  = evalList s ps >>= runPrim x s
+eval s (BonlangFuncApply x@BonlangPrimIOFunc {} ps)
+  = evalList s ps >>= runPrim x s
+eval s (BonlangFuncApply x@BonlangClosure {} ps)
+   = evalList s ps >>= \ps' -> evalClosure s x (unList ps')
 eval s (BonlangFuncApply r ps)
   = do ref' <- getReference s r
        if isReduced ref'

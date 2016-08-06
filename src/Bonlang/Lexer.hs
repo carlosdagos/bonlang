@@ -93,7 +93,7 @@ list = L.BonlangList <$> brackets (P.commaSep bonlang expression)
 whiteSpace :: BonlangParsec u ()
 whiteSpace = P.whiteSpace bonlang
 
-paramsList :: BonlangParsec u [String]
+paramsList :: BonlangParsec u L.ParamsList
 paramsList = brackets $ P.commaSep bonlang identifier
 
 closure :: BonlangParsec u L.BonlangValue
@@ -102,9 +102,9 @@ closure = do _ <- lexeme $ reserved "lambda"
              _ <- reservedOp "=>"
              bExp   <- simpleExpression
              return L.BonlangClosure { L.cParams = params
-                                        , L.cBody   = bExp
-                                        , L.cEnv    = Map.fromList []
-                                        }
+                                     , L.cBody   = bExp
+                                     , L.cEnv    = Map.fromList []
+                                     }
 
 conditional :: BonlangParsec u L.BonlangValue
 conditional = do reserved "if"
