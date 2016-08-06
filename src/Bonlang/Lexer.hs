@@ -181,9 +181,7 @@ moduleDef
     nameAndValue x@L.BonlangAlias {} = (L.aliasName x, x)
     nameAndValue _ = error "Panic: This should never happen"
     importStatements :: BonlangParsec u L.BonlangDirectiveType
-    importStatements = fmap L.ModuleImport $ reserved "import" *> identifier
-
-
+    importStatements = L.ModuleImport <$> (reserved "import" *> identifier)
 
 functionApply :: BonlangParsec u L.BonlangValue
 functionApply = do funName   <- Parsec.try $ refIdentifier <* reservedOp "$"

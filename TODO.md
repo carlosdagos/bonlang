@@ -5,7 +5,7 @@ In no particular order
 
 - ~~Add support for lambdas~~
 - Primitive currying! **Important**
-- Automatic currying
+- ~~Automatic currying~~
 - IO Read functions
 - Support for custom data types (¿?)
 - Module loading

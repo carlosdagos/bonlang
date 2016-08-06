@@ -28,6 +28,8 @@ import qualified Data.Map                   as Map
 import           Data.Maybe                 (fromJust, isJust)
 import qualified System.IO                  as IO
 
+-- | Adhoc types to use as phantoms for handles, useful for testing input and
+-- | output from specific IO sources
 data OutputHandle
 data InputHandle
 data BonHandle a  = BonHandle IO.Handle
@@ -73,9 +75,10 @@ primitiveBindings :: BonHandle InputHandle -> BonHandle OutputHandle -> IO Scope
 primitiveBindings (BonHandle _) (BonHandle out)
   = nullScope >>= flip bindVars (Map.fromList primitives')
     where
-        makeFunc c (v, f) = (v, c f)
-        primitives'       = fmap (makeFunc BonlangPrimIOFunc) (ioPrimitives out)
-                         ++ fmap (makeFunc BonlangPrimFunc) primitives
+      makeFunc c (v, f) = (v, c f)
+      primitives' :: [(String, BonlangValue)]
+      primitives' = fmap (makeFunc BonlangPrimIOFunc) (ioPrimitives out)
+                ++ fmap (makeFunc BonlangPrimFunc) primitives
 
 bindVars :: Scope -> Map.Map String BonlangValue -> IO Scope
 bindVars scope bindings
@@ -83,8 +86,7 @@ bindVars scope bindings
        r <- extendScope (Map.toList bindings) (Map.toList s)
        IORef.newIORef r
     where
-        extendScope bdings s = fmap (Map.fromList . (++ s)) (mapM addBinding bdings)
-        addBinding t@(_, _)  = return t
+        extendScope bds s = fmap (Map.fromList . (++ s)) (mapM return bds)
 
 startEval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 startEval s (BonlangDirective dir@(ModuleDef m _ is at))
@@ -188,7 +190,9 @@ evalDirective s (ModuleDef _ _ is _)
     where
         is' = filter (\(f,_) -> f /= "main") (Map.toList is)
 evalDirective _ (ModuleImport _) = error "TODO: Module imports"
-evalDirective _ _                = error "TODO: eval directive undefined"
+evalDirective _ _
+  = Except.throwE
+      $ InternalTypeMismatch "Attempting eval directive for undefined" []
 
 liftThrows :: ThrowsError a -> IOThrowsException a
 liftThrows (Left err) = Except.throwE err
