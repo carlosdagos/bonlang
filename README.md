@@ -75,12 +75,17 @@ The language supports automatic currying:
 ```
 module Main where
 
+/**
+ * Adds two values
+ */
 def addValues [x, y] = + $ x y
 
-def add2 [y] = addValues $ 2
-
 def main [] = {
-    puts-ln $ (add2 $ 2); // Will output '4'
+    val add2 = addValues $ 2;
+    val four = add2 $ 2;
+
+    // Will output '4'
+    puts-ln $ four;
 }
 ```
 
