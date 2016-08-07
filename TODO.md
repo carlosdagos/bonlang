@@ -3,6 +3,7 @@ TODO
 
 In no particular order
 
+- Lexer and Runtime renaming of closures
 - ~~Add support for lambdas~~
 - Primitive currying! **Important**
 - ~~Automatic currying~~
