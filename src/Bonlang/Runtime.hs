@@ -23,7 +23,6 @@ import           Control.Monad.IO.Class     (liftIO)
 import qualified Control.Monad.Loops        as Loops
 import           Control.Monad.Trans.Except as Except
 import qualified Data.IORef                 as IORef
-import qualified Data.Map                   as M
 import qualified Data.Map                   as Map
 import           Data.Maybe                 (fromJust, isJust)
 import qualified System.IO                  as IO
@@ -34,7 +33,7 @@ data OutputHandle
 data InputHandle
 data BonHandle a  = BonHandle IO.Handle
 
-type Bindings = M.Map String BonlangValue
+type Bindings = Map.Map String BonlangValue
 type Scope    = IORef.IORef Bindings
 
 nullScope :: IO.IO Scope
@@ -151,23 +150,23 @@ evalClosure s c@BonlangClosure {} ps
   = do s' <- liftIO $ IORef.readIORef s
        if notEnoughParams
           then return BonlangClosure { cParams = cParams c
-                                     , cEnv    = Map.union (cEnv c) newParams'
+                                     , cEnv    = cEnv c `Map.union` newParams
                                      , cBody   = cBody c
                                      }
           else if tooManyParams
                then Except.throwE $ DefaultError "Too many params applied"
-               else do let cBody' = cBody c
-                       let rScope = Map.union s' newParams'
-                       s'' <- liftIO $ IORef.newIORef rScope
+               else do let cBody'   = cBody c
+                       let newScope = s' `Map.union` newParams `Map.union` cEnv c
+                       s'' <- liftIO $ IORef.newIORef newScope
                        case cBody' of
                          BonlangClosure {}    -> evalClosure s'' cBody' newArgs
                          _                    -> eval s'' cBody'
     where
         notEnoughParams = existingArgs + length ps < length (cParams c)
         tooManyParams   = existingArgs + length ps > length (cParams c)
-        existingArgs    = length (Map.toList (cEnv c))
-        newParams'      = Map.fromList (zip (drop existingArgs $ cParams c) ps)
-        newArgs         = map snd $ Map.toList newParams'
+        existingArgs    = length $ Map.toList (cEnv c)
+        newParams       = Map.fromList $ zip (drop existingArgs $ cParams c) ps
+        newArgs         = map snd $ Map.toList newParams
 evalClosure _ x _
   = Except.throwE $ InternalTypeMismatch "Can't eval non closure" [x]
 
@@ -180,8 +179,8 @@ runPrim (BonlangPrimIOFunc f) s (BonlangList ps) = do params <- mapM (eval s) ps
 runPrim (BonlangPrimFunc f) s (BonlangList ps)   = do params <- mapM (eval s) ps
                                                       liftThrows $ f params
 runPrim x _ _
-  = Except.throwE $
-       TypeMismatch "Can't run primary function application on non-primary" x
+  = Except.throwE $ InternalTypeMismatch
+              "Can't run primary function application on non-primary" [x]
 
 evalDirective :: Scope -> BonlangDirectiveType -> IOThrowsException BonlangValue
 evalDirective s (ModuleDef _ _ is _)
