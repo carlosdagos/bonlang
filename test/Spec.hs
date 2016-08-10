@@ -28,12 +28,12 @@ data TestFile = TestFile { meta :: T.Text
                          }
                          deriving (Show)
 
-data TestInputOutput = TestInputOutput { output :: String
-                                       }
-                                       deriving (Generic, Show)
+data TestOuput = TestOuput { output :: String
+                           }
+                           deriving (Generic, Show)
 
-instance FromJSON TestInputOutput
-instance ToJSON TestInputOutput
+instance FromJSON TestOuput
+instance ToJSON TestOuput
 
 main :: IO ()
 main = tests >>= defaultMain
@@ -108,7 +108,7 @@ runTestFile testFile
 
         expectedOutput
           = let tioSource = E.encodeUtf8 $ meta testFile in
-            return $ Y.decode tioSource :: IO (Maybe TestInputOutput)
+            return $ Y.decode tioSource :: IO (Maybe TestOuput)
 
 --------------------------------------------------------------------------------
 -- | For a file path, get a TestFile value
