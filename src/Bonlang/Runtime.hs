@@ -23,7 +23,7 @@ import           Control.Monad.IO.Class     (liftIO)
 import qualified Control.Monad.Loops        as Loops
 import           Control.Monad.Trans.Except as Except
 import qualified Data.IORef                 as IORef
-import qualified Data.Map                   as Map
+import qualified Data.Map                   as M
 import           Data.Maybe                 (fromJust, isJust)
 import qualified System.IO                  as IO
 
@@ -33,23 +33,23 @@ data OutputHandle
 data InputHandle
 data BonHandle a  = BonHandle IO.Handle
 
-type Bindings = Map.Map String BonlangValue
+type Bindings = M.Map String BonlangValue
 type Scope    = IORef.IORef Bindings
 
 nullScope :: IO.IO Scope
-nullScope = IORef.newIORef $ Map.fromList []
+nullScope = IORef.newIORef $ M.fromList []
 
 getReference :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 getReference scope (BonlangRefLookup name)
   = do s <- liftIO $ IORef.readIORef scope
-       let maybeVal = Map.lookup name s
+       let maybeVal = M.lookup name s
        maybe (Except.throwE $ UnboundReference name) return maybeVal
 getReference _ value
   = Except.throwE $ InternalTypeMismatch "Can't lookup" [value]
 
 isReferenceDefined :: Scope -> String -> IO Bool
 isReferenceDefined scope name
-  = fmap (isJust . Map.lookup name) (IORef.readIORef scope)
+  = fmap (isJust . M.lookup name) (IORef.readIORef scope)
 
 defineReference :: Scope
                 -> BonlangValue
@@ -65,27 +65,27 @@ defineReference scope x
                   then Except.throwE $ DefaultError "alreadyDefined"
                   else liftIO $ do s <- IORef.readIORef scope
                                    IORef.writeIORef scope $
-                                       Map.insert name value s
+                                       M.insert name value s
                                    return value
       error' bad = Except.throwE $
           InternalTypeMismatch "Can't define reference" [bad]
 
 primitiveBindings :: BonHandle InputHandle -> BonHandle OutputHandle -> IO Scope
 primitiveBindings (BonHandle _) (BonHandle out)
-  = nullScope >>= flip bindVars (Map.fromList primitives')
+  = nullScope >>= flip bindVars (M.fromList primitives')
     where
       makeFunc c (v, f) = (v, c f)
       primitives' :: [(String, BonlangValue)]
       primitives' = fmap (makeFunc BonlangPrimIOFunc) (ioPrimitives out)
                 ++ fmap (makeFunc BonlangPrimFunc) primitives
 
-bindVars :: Scope -> Map.Map String BonlangValue -> IO Scope
+bindVars :: Scope -> M.Map String BonlangValue -> IO Scope
 bindVars scope bindings
   = do s <- IORef.readIORef scope
-       r <- extendScope (Map.toList bindings) (Map.toList s)
+       r <- extendScope (M.toList bindings) (M.toList s)
        IORef.newIORef r
     where
-        extendScope bds s = fmap (Map.fromList . (++ s)) (mapM return bds)
+        extendScope bds s = fmap (M.fromList . (++ s)) (mapM return bds)
 
 startEval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 startEval s (BonlangDirective dir@(ModuleDef m _ is at))
@@ -95,7 +95,7 @@ startEval s (BonlangDirective dir@(ModuleDef m _ is at))
                else Except.throwE $ noMainFunction at
                else Except.throwE $ noMainModule at
     where
-        hasMain moduleDefs = isJust $ Map.lookup "main" moduleDefs
+        hasMain moduleDefs = isJust $ M.lookup "main" moduleDefs
 startEval _ x = Except.throwE $ cantStartNonModule x
 
 eval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
@@ -150,13 +150,13 @@ evalClosure s c@BonlangClosure {} ps
   = do s' <- liftIO $ IORef.readIORef s
        if notEnoughParams
           then return BonlangClosure { cParams = cParams c
-                                     , cEnv    = cEnv c `Map.union` newParams
+                                     , cEnv    = cEnv c `M.union` newParams
                                      , cBody   = cBody c
                                      }
           else if tooManyParams
                then Except.throwE $ DefaultError "Too many params applied"
                else do let cBody'   = cBody c
-                       let newScope = s' `Map.union` newParams `Map.union` cEnv c
+                       let newScope = s' `M.union` newParams `M.union` cEnv c
                        s'' <- liftIO $ IORef.newIORef newScope
                        case cBody' of
                          BonlangClosure {}    -> evalClosure s'' cBody' newArgs
@@ -164,9 +164,9 @@ evalClosure s c@BonlangClosure {} ps
     where
         notEnoughParams = existingArgs + length ps < length (cParams c)
         tooManyParams   = existingArgs + length ps > length (cParams c)
-        existingArgs    = length $ Map.toList (cEnv c)
-        newParams       = Map.fromList $ zip (drop existingArgs $ cParams c) ps
-        newArgs         = map snd $ Map.toList newParams
+        existingArgs    = length $ M.toList (cEnv c)
+        newParams       = M.fromList $ zip (drop existingArgs $ cParams c) ps
+        newArgs         = map snd $ M.toList newParams
 evalClosure _ x _
   = Except.throwE $ InternalTypeMismatch "Can't eval non closure" [x]
 
@@ -185,9 +185,9 @@ runPrim x _ _
 evalDirective :: Scope -> BonlangDirectiveType -> IOThrowsException BonlangValue
 evalDirective s (ModuleDef _ _ is _)
   = do sequence_ (fmap (\(_, f) -> defineReference s f) is')
-       evalClosure s (aliasExpression . fromJust $ Map.lookup "main" is) []
+       evalClosure s (aliasExpression . fromJust $ M.lookup "main" is) []
     where
-        is' = filter (\(f,_) -> f /= "main") (Map.toList is)
+        is' = filter (\(f,_) -> f /= "main") (M.toList is)
 evalDirective _ (ModuleImport _) = error "TODO: Module imports"
 evalDirective _ _
   = Except.throwE
