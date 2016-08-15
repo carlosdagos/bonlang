@@ -1,7 +1,18 @@
 ---
-output: "8\n"
+output: "13\n"
 ---
 
+/**
+ * This looks like:
+ *
+ * n0 = 1
+ * n1 = 1
+ * n2 = 2
+ * n3 = 3
+ * n4 = 5
+ * n5 = 8
+ * n6 = 13
+ */
 module Main where
 
 def fib [n] = if || $ (== $ n 0) (== $ n 1)

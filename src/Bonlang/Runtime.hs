@@ -161,7 +161,7 @@ evalClosure s c@BonlangClosure {} ps
           else if tooManyParams
                then Except.throwE $ DefaultError "Too many params applied"
                else do let cBody'   = cBody c
-                       let newScope = cEnv c `u` s' `u` newParams
+                       let newScope = newParams `u` cEnv c `u` s'
                        s'' <- liftIO $ IORef.newIORef newScope
                        case cBody' of
                          BonlangClosure {}    -> evalClosure s'' cBody' newArgs
