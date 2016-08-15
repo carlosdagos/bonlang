@@ -48,8 +48,7 @@ getReference _ value
   = Except.throwE $ InternalTypeMismatch "Can't lookup" [value]
 
 isReferenceDefined :: Scope -> String -> IO Bool
-isReferenceDefined scope name
-  = fmap (isJust . M.lookup name) (IORef.readIORef scope)
+isReferenceDefined scope name = isJust . M.lookup name <$> IORef.readIORef scope
 
 defineReference :: Scope
                 -> BonlangValue
@@ -121,13 +120,18 @@ eval s (BonlangFuncApply r ps)
           then do evaledPs <- evalList s ps
                   if isPrimFunction ref'
                      then runPrim ref' s evaledPs
-                     else evalClosure s ref' ps
+                     else evalClosure s ref' (unList evaledPs)
           else do evald' <- eval s ref'
                   eval s (BonlangFuncApply evald' ps)
 eval s x@BonlangAlias {}
   = if aliasName x == "main"
        then eval s (aliasExpression x)
        else defineReference s x
+eval s x@BonlangIfThenElse{}
+  = do x' <- evalUntilReduced s $ condition x
+       case x' of
+          BonlangBool True -> eval s $ valueTrue x
+          _                -> eval s $ valueFalse x
 eval _ x
   = Except.throwE $ InternalTypeMismatch "Don't know how to eval" [x]
 
@@ -148,15 +152,16 @@ evalClosure :: Scope
             -> IOThrowsException BonlangValue
 evalClosure s c@BonlangClosure {} ps
   = do s' <- liftIO $ IORef.readIORef s
+       let u = M.union
        if notEnoughParams
           then return BonlangClosure { cParams = cParams c
-                                     , cEnv    = cEnv c `M.union` newParams
+                                     , cEnv    = cEnv c `u` newParams
                                      , cBody   = cBody c
                                      }
           else if tooManyParams
                then Except.throwE $ DefaultError "Too many params applied"
                else do let cBody'   = cBody c
-                       let newScope = s' `M.union` newParams `M.union` cEnv c
+                       let newScope = cEnv c `u` s' `u` newParams
                        s'' <- liftIO $ IORef.newIORef newScope
                        case cBody' of
                          BonlangClosure {}    -> evalClosure s'' cBody' newArgs

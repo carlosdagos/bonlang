@@ -52,12 +52,13 @@ testExpectations = getFiles "test/examples/" >>=
 -- | Parsing test tree
 parsing :: IO TestTree
 parsing = getFiles "test/parser_tests/" >>=
-    \files -> return $ testGroup "Parsing tests" $ map testCaseFiles files
+    \files -> return $ testGroup "Parsing tests" $ map testParseFailes files
 
 --------------------------------------------------------------------------------
 -- | For an example file, get a test tree
 exampleFiles :: FilePath -> TestTree
-exampleFiles f = testCase ("Example file: " `mappend` f) exampleAssertion
+exampleFiles f = localOption (mkTimeout 1000000) $
+                    testCase ("Example file: " `mappend` f) exampleAssertion
     where
         exampleAssertion :: Assertion
         exampleAssertion = do testFile <- makeTestFile f
@@ -84,7 +85,6 @@ evalString :: B.Scope -> String -> IO (Either B.BonlangError B.BonlangValue)
 evalString scope expr = runExceptT $ B.liftThrows (readExpr expr)
                     >>= B.startEval scope
 
-
 --------------------------------------------------------------------------------
 -- | For a TestFile, assert that running it returns the expected output
 runTestFile :: TestFile -> Assertion
@@ -100,7 +100,7 @@ runTestFile testFile
                let testOutput = B.BonHandle tempH
 
                s <- B.primitiveBindings testInput testOutput
-               d <- evalString s ((T.unpack . code) testFile)
+               d <- evalString s $ (T.unpack . code) testFile
                hClose tempH
                case d of
                  Right _ -> readFile tempFile
@@ -128,8 +128,8 @@ createTmpFile = do tmpdir <- getTemporaryDirectory
 
 --------------------------------------------------------------------------------
 -- | For a file name, parse it and assert that it was parsed correctly
-testCaseFiles :: String -> TestTree
-testCaseFiles f = testCase ("Parsing file: " `mappend` f) fileAssertion
+testParseFailes :: String -> TestTree
+testParseFailes f = testCase ("Parsing file: " `mappend` f) fileAssertion
                   where
                       fileAssertion :: Assertion
                       fileAssertion = do (_, b) <- parse' f
