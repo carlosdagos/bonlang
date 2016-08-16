@@ -6,5 +6,6 @@ module Main where
 def main [] = {
     val λ1 = lambda [x, y] => + $ x y;
     val λ2 = lambda [y] => λ1 $ 2 y;
-    puts-ln $ (λ1 $ 2 2) (λ2 $ 2);
+    puts-ln $ (λ1 $ 2 2);
+    puts-ln $ (λ2 $ 2);
 }
