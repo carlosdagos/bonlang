@@ -1,0 +1,32 @@
+---
+output: "3628800\n"
+---
+
+/**
+ * This looks like:
+ *
+ * n0  = 1
+ * n1  = 1
+ * n2  = 2
+ * n3  = 6
+ * n4  = 24
+ * n5  = 120
+ * n6  = 720
+ * n7  = 5040
+ * n8  = 40320
+ * n9  = 362880
+ * n10 = 3628800
+ */
+module Main where
+
+def facTail [product, counter, maxCount]
+  = if > $ counter maxCount
+       then product
+       else facTail $ (* $ counter product) (+ $ counter 1) maxCount
+
+def fac [n] = facTail $ 1 1 n
+
+def main [] = {
+   val fac10 = fac $ 10;
+   puts-ln $ fac10;
+}

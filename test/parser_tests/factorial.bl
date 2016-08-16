@@ -1,0 +1,13 @@
+module Main where
+
+def facTail [product, counter, maxCount]
+  = if > $ counter maxCount
+       then product
+       else facTail $ (* $ counter product) (+ $ counter 1) maxCount
+
+def fac [n] = facTail $ 1 1 n
+
+def main [] = {
+   val fac10 = fac $ 1000;
+   puts-ln $ fac10;
+}
