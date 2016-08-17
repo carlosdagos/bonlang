@@ -13,33 +13,21 @@ module Bonlang.Lang.Numeric
 import           Bonlang.Lang
 import           Prelude      hiding (subtract)
 
-binOp
-    :: (a -> BonlangValue)
-    -> (BonlangNum -> BonlangNum -> a)
-    -> BonlangValue
-    -> BonlangValue
-    -> Maybe BonlangValue
-binOp c op (BonlangNumber x) (BonlangNumber y) = Just $ c (x `op` y)
-binOp _ _ _ _ = Nothing
+binOp :: (a -> BonlangValue)              -- A Constructor
+      -> (BonlangNum -> BonlangNum -> a)  -- A binary operation
+      -> PrimFunc                         -- A primitive function
+binOp c op xs = case xs of
+  [BonlangNumber x, BonlangNumber y] -> return $ c (x `op` y)
+  _ -> Left $ NumArgs (length xs) xs
 
-binNumericOp
-    :: (BonlangNum -> BonlangNum -> BonlangNum)
-    -> BonlangValue
-    -> BonlangValue
-    -> Maybe BonlangValue
+binNumericOp :: (BonlangNum -> BonlangNum -> BonlangNum) -> PrimFunc
 binNumericOp = binOp BonlangNumber
 
-binBoolOp
-    :: (BonlangNum -> BonlangNum -> Bool)
-    -> BonlangValue
-    -> BonlangValue
-    -> Maybe BonlangValue
+binBoolOp :: (BonlangNum -> BonlangNum -> Bool) -> PrimFunc
 binBoolOp = binOp BonlangBool
 
-add, subtract, multiply, divide, modulo
-    :: BonlangValue -> BonlangValue -> Maybe BonlangValue
-greaterThan, greaterThanOrEquals, lessThan, lessThanOrEquals
-    :: BonlangValue -> BonlangValue -> Maybe BonlangValue
+add, subtract, multiply, divide, modulo                      :: PrimFunc
+greaterThan, greaterThanOrEquals, lessThan, lessThanOrEquals :: PrimFunc
 
 add                 = binNumericOp (+)
 multiply            = binNumericOp (*)
@@ -50,4 +38,3 @@ greaterThan         = binBoolOp (>)
 greaterThanOrEquals = binBoolOp (>=)
 lessThan            = binBoolOp (<)
 lessThanOrEquals    = binBoolOp (<=)
-

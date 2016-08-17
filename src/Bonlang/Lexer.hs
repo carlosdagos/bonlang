@@ -103,7 +103,7 @@ closure = do _ <- lexeme $ reserved "lambda"
              bExp   <- simpleExpression
              return L.BonlangClosure { L.cParams = params
                                      , L.cBody   = bExp
-                                     , L.cEnv    = Map.fromList []
+                                     , L.cEnv    = Map.empty
                                      }
 
 conditional :: BonlangParsec u L.BonlangValue
@@ -154,7 +154,7 @@ pureFunctionDef
                             , L.aliasExpression = L.BonlangClosure
                                  { L.cParams = funParams
                                  , L.cBody   = fDef'
-                                 , L.cEnv    = Map.fromList []
+                                 , L.cEnv    = Map.empty
                                  }
                             }
 

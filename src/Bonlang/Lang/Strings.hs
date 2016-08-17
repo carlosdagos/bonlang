@@ -1,25 +1,20 @@
 module Bonlang.Lang.Strings
     ( concat
-    , concatMaybe
     , toString
     ) where
 
 import           Bonlang.Lang
-import           Data.Maybe
 import qualified Data.Text    as T
+import Data.Monoid
 import           Prelude      hiding (concat)
 
-concat :: BonlangValue -> BonlangValue -> ThrowsError BonlangValue
-concat (BonlangString s) (BonlangString s')
-  = Right $ BonlangString $ s `mappend` s'
-concat x y
-  = Left $ InternalTypeMismatch "Incompatible types" [x, y]
+concat :: PrimFunc
+concat xs = case xs of
+  [BonlangString s, BonlangString s'] -> Right $ BonlangString $ s <> s'
+  _ -> Left $ InternalTypeMismatch "Incompatible types" xs
 
-concatMaybe :: BonlangValue -> BonlangValue -> Maybe BonlangValue
-concatMaybe x y = either (const Nothing) Just (concat x y)
-
-toString :: BonlangValue -> Maybe T.Text
-toString (BonlangString s) = Just s
-toString (BonlangNumber x) = Just $ T.pack $ show x
-toString (BonlangBool b)   = Just $ T.pack $ show b
-toString _                 = Nothing
+toString :: PrimFunc
+toString [s@BonlangString {}] = return s
+toString [BonlangNumber x]    = return $ BonlangString (T.pack $ show x)
+toString [BonlangBool b]      = return $ BonlangString (T.pack $ show b)
+toString xs                   = Left $ NumArgs (length xs) xs

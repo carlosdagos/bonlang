@@ -1,0 +1,16 @@
+module Main where
+
+/**
+ * Will output '4' twice in new lines
+ */
+def main [] = {
+    val multByTwo = * $ 2;
+    val addTwo    = + $ 2;
+    val sixMinus  = - $ 6;
+    val eightDiv  = / $ 8;
+
+    puts-ln $ (multByTwo $ 2);
+    puts-ln $ (addTwo $ 2);
+    puts-ln $ (sixMinus $ 2);
+    puts-ln $ (eightDiv $ 4);
+}

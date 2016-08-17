@@ -6,8 +6,7 @@ module Main where
 
 def main [] = {
     val addition = (to-string $
-                        (+ $ 1 2 3 4
-                          (- $ 10 (* $ 4 5))));
+                      (+ $ 10 (- $ 10 20)));
 
-    puts $ (++ $ "Hello! " "Computing some stuff: " addition);
+    puts $ (++ $ "Hello! " (++ $ "Computing some stuff: " addition));
 }
