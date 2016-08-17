@@ -1,7 +1,8 @@
 module Main where
 
 /**
- * Will output '4' twice in new lines
+ * Will output '4' three times in new lines
+ * Will output '4.0' in the next line
  */
 def main [] = {
     val multByTwo = * $ 2;
