@@ -37,7 +37,7 @@ type Bindings = M.Map String BonlangValue
 type Scope    = IORef.IORef Bindings
 
 nullScope :: IO.IO Scope
-nullScope = IORef.newIORef $ M.fromList []
+nullScope = IORef.newIORef M.empty
 
 getReference :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 getReference scope (BonlangRefLookup name)
@@ -73,10 +73,8 @@ primitiveBindings :: BonHandle InputHandle -> BonHandle OutputHandle -> IO Scope
 primitiveBindings (BonHandle _) (BonHandle out)
   = nullScope >>= flip bindVars (M.fromList primitives')
     where
-      makeFunc c (v, f) = (v, c f)
       primitives' :: [(String, BonlangValue)]
-      primitives' = fmap (makeFunc BonlangPrimIOFunc) (ioPrimitives out)
-                ++ fmap (makeFunc BonlangPrimFunc) primitives
+      primitives' = ioPrimitives out ++ primitives
 
 bindVars :: Scope -> M.Map String BonlangValue -> IO Scope
 bindVars scope bindings
@@ -94,6 +92,7 @@ startEval s (BonlangDirective dir@(ModuleDef m _ is at))
                else Except.throwE $ noMainFunction at
                else Except.throwE $ noMainModule at
     where
+        hasMain :: Bindings -> Bool
         hasMain moduleDefs = isJust $ M.lookup "main" moduleDefs
 startEval _ x = Except.throwE $ cantStartNonModule x
 
@@ -101,13 +100,12 @@ eval :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 eval _ x@BonlangString {}      = return x
 eval _ x@BonlangNumber {}      = return x
 eval _ x@BonlangBool {}        = return x
+eval _ x@BonlangClosure {}     = return x
 eval s (BonlangDirective dir)  = evalDirective s dir
 eval s (BonlangBlock is)       = do l <- last <$> sequence (fmap (eval s) is)
                                     evalUntilReduced s l
 eval s (BonlangList xs)        = evalList s xs
 eval s x@BonlangRefLookup {}   = getReference s x
-eval _ x@BonlangPrimIOFunc {}  = return x
-eval _ x@BonlangPrimFunc {}    = return x
 eval s (BonlangFuncApply x@BonlangPrimFunc {} ps)
   = evalList s ps >>= runPrim x s
 eval s (BonlangFuncApply x@BonlangPrimIOFunc {} ps)
@@ -162,10 +160,17 @@ evalClosure s c@BonlangClosure {} ps
                then Except.throwE $ DefaultError "Too many params applied"
                else do let cBody'   = cBody c
                        let newScope = newParams `u` cEnv c `u` s'
+                       let primArgs = map snd $ M.toList $ cEnv c `u` newParams
                        s'' <- liftIO $ IORef.newIORef newScope
                        case cBody' of
-                         BonlangClosure {}    -> evalClosure s'' cBody' newArgs
-                         _                    -> eval s'' cBody'
+                          f@BonlangPrimFunc {} ->
+                              evalList s'' primArgs >>= runPrim f s''
+                          g@BonlangPrimIOFunc {} ->
+                              evalList s'' primArgs >>= runPrim g s''
+                          BonlangClosure {} ->
+                              evalClosure s'' cBody' newArgs
+                          _ ->
+                              eval s'' cBody'
     where
         notEnoughParams = existingArgs + length ps < length (cParams c)
         tooManyParams   = existingArgs + length ps > length (cParams c)

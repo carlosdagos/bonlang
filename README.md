@@ -89,6 +89,19 @@ def main [] = {
 }
 ```
 
+Or using higher order functions with curried functions
+
+```
+module Main where
+
+def main [] = {
+    val addFive = + $ 5;
+
+    map $ puts-ln (map $ addFive [0, 5, 10, 15]);
+    // prints 5, 10, 15, 20
+}
+```
+
 ### Function application
 
 Function application is done with the `$` operator after an expression. If

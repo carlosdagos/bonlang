@@ -8,29 +8,24 @@ import           Bonlang.Lang
 import           Bonlang.Lang.Strings
 import           Control.Monad.IO.Class     (liftIO)
 import qualified Control.Monad.Trans.Except as Except
-import           Data.Maybe                 (fromJust, isNothing)
+import qualified Data.Map                   as M
 import qualified Data.Text                  as T
 import           Prelude                    hiding (print)
 import qualified System.IO                  as IO
 
-ioOutput :: (BonlangValue -> IO ())
-         -> [BonlangValue]
-         -> IOThrowsException BonlangValue
-ioOutput _ []  = Except.throwE $ NumArgs 0 []
-ioOutput f [x] = do _ <- liftIO $ f x
+ioOutput :: (String -> IO ()) -> BonlangValue
+ioOutput f = BonlangClosure { cParams = ["s0"]
+                            , cEnv    = M.empty
+                            , cBody   = BonlangPrimIOFunc printFunc
+                            }
+  where
+    printFunc :: PrimIOFunc
+    printFunc xs = case toString xs of
+      Right x -> do _ <- liftIO $ f (T.unpack . unString $ x)
                     return $ BonlangBool True
-ioOutput _ xs  = Except.throwE $ NumArgs (length xs) []
+      _       -> Except.throwE $ NumArgs (length xs) xs
 
-print, puts, putsln :: IO.Handle
-                    -> [BonlangValue]
-                    -> IOThrowsException BonlangValue
+print, puts, putsln :: IO.Handle -> BonlangValue
 print  h = ioOutput (IO.hPrint h)
-puts   h = dPuts    (IO.hPutStr h)
-putsln h = dPuts    (IO.hPutStrLn h)
-
-dPuts :: (String -> IO ()) -> [BonlangValue] -> IOThrowsException BonlangValue
-dPuts f x = let ms = map toString x in
-            if any isNothing ms
-               then Except.throwE $
-                  InternalTypeMismatch "Can't turn to string" x
-               else ioOutput (f . T.unpack . fromJust . toString) x
+puts   h = ioOutput (IO.hPutStr h)
+putsln h = ioOutput (IO.hPutStrLn h)

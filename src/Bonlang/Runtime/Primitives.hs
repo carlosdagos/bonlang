@@ -12,7 +12,7 @@ import qualified Bonlang.Runtime.Strings as Strings
 import qualified Bonlang.Runtime.Types   as Types
 import qualified System.IO               as IO
 
-primitives :: [(String, [BonlangValue] -> ThrowsError BonlangValue)]
+primitives :: [(String, BonlangValue)]
 primitives = [ ("is-scalar",   Types.isScalar')        -- Boolean primitives
              , ("is-string",   Types.isString')
              , ("is-number",   Types.isNumber')
@@ -47,11 +47,9 @@ primitives = [ ("is-scalar",   Types.isScalar')        -- Boolean primitives
              , ("to-string",   Strings.toString')
              ]
 
-ioPrimitives :: IO.Handle
-             -> [(String, [BonlangValue] -> IOThrowsException BonlangValue)]
+ioPrimitives :: IO.Handle -> [(String, BonlangValue)]
 ioPrimitives handle = [ ("print",   BonIO.print handle)
                       , ("puts",    BonIO.puts handle)
                       , ("puts-ln", BonIO.putsln handle)
                       , ("map",     Lists.map')
                       ]
-

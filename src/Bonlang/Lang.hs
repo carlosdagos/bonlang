@@ -11,6 +11,8 @@ module Bonlang.Lang
     , ThrowsError
     , IOThrowsException
     , BonlangNum
+    , PrimFunc
+    , PrimIOFunc
     ) where
 
 import           Control.Monad.Trans.Except    as Except
@@ -86,7 +88,7 @@ isEqual (BonlangString x) (BonlangString y) = x == y
 isEqual (BonlangNumber x) (BonlangNumber y) = x == y
 isEqual (BonlangBool x)   (BonlangBool y)   = x == y
 isEqual (BonlangList x)   (BonlangList y)   = x == y
-isEqual x y                                 = error $ "Can't do this\n" ++ show x ++ "\n" ++ show y
+isEqual _ _                                 = False
 
 instance Show PrimFunc where
     show _ = "<bonlang:primitive function>"

@@ -10,26 +10,33 @@ module Bonlang.Runtime.Types
     ) where
 
 import           Bonlang.Lang
-import           Bonlang.Lang.Types
-import qualified Control.Monad.Except as Error
+import qualified Bonlang.Lang.Types as T
+import qualified Data.Map as M
 
-booleanCheck :: (BonlangValue -> Bool)
-             -> [BonlangValue]
-             -> ThrowsError BonlangValue
-booleanCheck _ [] = Error.throwError $ NumArgs 0 []
-booleanCheck f xs = Right $ BonlangBool (all f xs)
+booleanUnaryCheck :: PrimFunc -> BonlangValue
+booleanUnaryCheck f = BonlangClosure { cParams = ["b0"]
+                                     , cEnv    = M.empty
+                                     , cBody   = BonlangPrimFunc f
+                                     }
 
-isScalar', isString', isNumber', isInteger', isDouble', isList', isFunction'
-    :: [BonlangValue] -> ThrowsError BonlangValue
-isScalar'   = booleanCheck isScalar
-isString'   = booleanCheck isString
-isNumber'   = booleanCheck isNumber
-isInteger'  = booleanCheck isInteger
-isDouble'   = booleanCheck isDouble
-isList'     = booleanCheck isList
-isFunction' = booleanCheck isFunction
+isScalar', isString', isNumber', isInteger' :: BonlangValue
+isDouble', isList', isFunction'             :: BonlangValue
 
-isEqual' :: [BonlangValue] -> ThrowsError BonlangValue
-isEqual' []     = Error.throwError $ NumArgs 0 []
-isEqual' [_]    = Error.throwError $ NumArgs 1 []
-isEqual' (x:xs) = Right $ BonlangBool (all (x ==) xs)
+isScalar'   = booleanUnaryCheck T.isScalarP
+isString'   = booleanUnaryCheck T.isStringP
+isNumber'   = booleanUnaryCheck T.isNumberP
+isInteger'  = booleanUnaryCheck T.isIntegerP
+isDouble'   = booleanUnaryCheck T.isDoubleP
+isList'     = booleanUnaryCheck T.isListP
+isFunction' = booleanUnaryCheck T.isFunctionP
+
+isEqual' :: BonlangValue
+isEqual' = BonlangClosure { cParams = ["b0", "b1"]
+                          , cEnv    = M.empty
+                          , cBody   = BonlangPrimFunc equals'
+                          }
+           where
+             equals' :: PrimFunc
+             equals' xs = case xs of
+               [x, y] -> Right $ BonlangBool (x == y)
+               _      -> Left $ NumArgs (length xs) xs
