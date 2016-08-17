@@ -12,5 +12,5 @@ def isTwo [x] = == $ x 2
 
 def main [] = {
     val two = + $ 1 1;
-    puts $ "Hello Bool! " (isTwo $ two);
+    puts $ (concat $ "Hello Bool! " (to-string $ (isTwo $ two)));
 }

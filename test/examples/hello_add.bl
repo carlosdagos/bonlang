@@ -5,5 +5,9 @@ output: "Hello! Computing some stuff: 0"
 module Main where
 
 def main [] = {
-    puts $ "Hello! " "Computing some stuff: " (+ $ 1 2 3 4 (- $ 10 (* $ 4 5)));
+    val addition = (to-string $
+                        (+ $ 1 2 3 4
+                          (- $ 10 (* $ 4 5))));
+
+    puts $ (++ $ "Hello! " "Computing some stuff: " addition);
 }

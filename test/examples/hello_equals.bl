@@ -6,7 +6,10 @@ module Main where
 
 def main [] = {
     puts-ln $ "Testing this...";
+
     val two = + $ 1 1;
+
     puts-ln $ (concat $ "Is equal? " (to-string $ (== $ 2 two)));
-    puts $ "What was equal... " two;
+
+    puts $ (concat $ "What was equal... " (to-string $ two));
 }

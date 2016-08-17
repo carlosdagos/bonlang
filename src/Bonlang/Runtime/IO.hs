@@ -16,9 +16,10 @@ import qualified System.IO                  as IO
 ioOutput :: (BonlangValue -> IO ())
          -> [BonlangValue]
          -> IOThrowsException BonlangValue
-ioOutput _ [] = Except.throwE $ NumArgs 0 []
-ioOutput f xs = do _ <- liftIO $ mapM f xs
-                   return $ BonlangBool True
+ioOutput _ []  = Except.throwE $ NumArgs 0 []
+ioOutput f [x] = do _ <- liftIO $ f x
+                    return $ BonlangBool True
+ioOutput _ xs  = Except.throwE $ NumArgs (length xs) []
 
 print, puts, putsln :: IO.Handle
                     -> [BonlangValue]
