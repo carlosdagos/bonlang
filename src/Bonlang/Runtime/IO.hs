@@ -21,9 +21,9 @@ ioOutput f = BonlangClosure { cParams = ["s0"]
   where
     printFunc :: PrimIOFunc
     printFunc xs = case toString xs of
-      Right x -> do _ <- liftIO $ f (T.unpack . unString $ x)
-                    return $ BonlangBool True
-      _       -> Except.throwE $ NumArgs (length xs) xs
+      Right x  -> do _ <- liftIO $ f (T.unpack . unString $ x)
+                     return $ BonlangBool True
+      Left err -> Except.throwE err
 
 print, puts, putsln :: IO.Handle -> BonlangValue
 print  h = ioOutput (IO.hPrint h)

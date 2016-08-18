@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE IncoherentInstances #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE Strict              #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -13,10 +14,13 @@ module Bonlang.Lang
     , BonlangNum
     , PrimFunc
     , PrimIOFunc
+    , bonShow
     ) where
 
 import           Control.Monad.Trans.Except    as Except
+import qualified Data.List                     as L
 import qualified Data.Map                      as M
+import           Data.Monoid
 import qualified Data.Text                     as T
 import qualified System.IO                     as IO
 import           Text.Parsec                   (SourcePos)
@@ -69,7 +73,7 @@ data BonlangValue = BonlangList       { unList :: [BonlangValue] }
                   | BonlangDirective  { directive :: BonlangDirectiveType }
                   deriving (Show)
 
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- | Different types of errors we can get
 data BonlangError = NumArgs              Int        [BonlangValue]
                   | UnboundReference     String
@@ -79,6 +83,18 @@ data BonlangError = NumArgs              Int        [BonlangValue]
                   | NotFunction          String     String
                   | DefaultError         String
                   deriving (Show)
+
+-------------------------------------------------------------------------------
+-- | Adhoc typeclass useful when printing nested structures
+class BonlangShow a where
+  bonShow :: a -> String
+
+instance BonlangShow BonlangValue where
+    bonShow (BonlangList xs)  = "[" <> L.intercalate "," (map bonShow xs) <> "]"
+    bonShow (BonlangNumber n) = show n
+    bonShow (BonlangString s) = show s
+    bonShow (BonlangBool b)   = show b
+    bonShow _                 = "<bonlang:primitive>"
 
 instance Eq BonlangValue where
     x == y = isEqual x y
