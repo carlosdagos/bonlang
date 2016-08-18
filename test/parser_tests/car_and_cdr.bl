@@ -14,6 +14,8 @@ def cons [x, y, m] = if == $ m 0
 def car [z] = z $ 0
 def cdr [z] = z $ 1
 
+def swap [z] = cons $ (cdr $ z) (car $ z)
+
 def main [] = {
   // `myCons` is a curried `cons`, pending one argument
   // which is applied later by `car` and `cdr`
@@ -21,6 +23,9 @@ def main [] = {
 
   puts-ln $ (car $ myCons);
   puts-ln $ (cdr $ myCons);
+
+  puts-ln $ (car $ (swap $ myCons));
+  puts-ln $ (cdr $ (swap $ myCons));
 
   // This way we can work with pairs
   val listOfPairs = [
