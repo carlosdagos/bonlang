@@ -52,7 +52,7 @@ testExpectations = getFiles "test/examples/" >>=
 -- | Parsing test tree
 parsing :: IO TestTree
 parsing = getFiles "test/parser_tests/" >>=
-    \files -> return $ testGroup "Parsing tests" $ map testParseFailes files
+    \files -> return $ testGroup "Parsing tests" $ map testParseFiles files
 
 --------------------------------------------------------------------------------
 -- | For an example file, get a test tree
@@ -128,9 +128,10 @@ createTmpFile = do tmpdir <- getTemporaryDirectory
 
 --------------------------------------------------------------------------------
 -- | For a file name, parse it and assert that it was parsed correctly
-testParseFailes :: String -> TestTree
-testParseFailes f = testCase ("Parsing file: " `mappend` f) fileAssertion
-                  where
+testParseFiles :: String -> TestTree
+testParseFiles f = localOption (mkTimeout 50000) $
+                      testCase ("Parsing file: " `mappend` f) fileAssertion
+                   where
                       fileAssertion :: Assertion
                       fileAssertion = do (_, b) <- parse' f
                                          b @?= True
