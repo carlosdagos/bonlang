@@ -7,7 +7,8 @@ module Main where
  * Will output '20' in a new line
  */
 def main [] = {
-    val addFive = + $ 5;
+    val addFive    = + $ 5;
+    val printArray = map $ puts-ln;
 
-    map $ puts-ln (map $ addFive [0, 5, 10, 15]);
+    printArray $ (map $ addFive [0, 5, 10, 15]);
 }

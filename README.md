@@ -94,11 +94,12 @@ Or using higher order functions with curried functions
 ```
 module Main where
 
-def main [] = {
-    val addFive = + $ 5;
 
-    map $ puts-ln (map $ addFive [0, 5, 10, 15]);
-    // prints 5, 10, 15, 20
+def main [] = {
+    val addFive    = + $ 5;
+    val printArray = map $ puts-ln;
+
+    printArray $ (map $ addFive [0, 5, 10, 15]);
 }
 ```
 
