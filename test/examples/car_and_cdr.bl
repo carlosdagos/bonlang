@@ -6,6 +6,7 @@ output: "Carlos\nAndrés\n[1,3,5,7,9]\n[2,4,6,8,10]\n"
  * Classic CAR/CRD
  *
  * https://en.wikipedia.org/wiki/CAR_and_CDR
+ * https://mitpress.mit.edu/sicp/full-text/sicp/book/node30.html
  */
 module Main where
 
