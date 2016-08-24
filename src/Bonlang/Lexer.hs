@@ -25,15 +25,14 @@ bonlangStyle = emptyDef
                       <|> Parsec.oneOf symbols
     , P.opStart         = P.opLetter bonlangStyle
     , P.opLetter        = Parsec.oneOf symbols
-    , P.reservedOpNames = [ "=", ".", "$", "=>" ]
+    , P.reservedOpNames = [ "=", ".", "$", "=>", "->" ]
     , P.reservedNames   = [ "if",     "then",     "else"
-                          , "case",   "of"
-                          , "typeof", "type",     "class"
-                          , "do",     "import"
-                          , "infix",  "infix1"
-                          , "infixr", "instance", "lambda"
+                          , "match"
+                          , "import"
+                          , "lambda"
                           , "module", "where"
-                          , "var",    "val",      "def"
+                          , "val"
+                          , "def"
                           , "true",   "false"
                           , "return"
                           ]
@@ -118,6 +117,42 @@ conditional = do reserved "if"
                                             , L.valueFalse = falseExpr
                                             }
 
+bracesBlock :: BonlangParsec u a -> BonlangParsec u [a]
+bracesBlock elems
+  = lexeme $ do _ <- symbol "{"
+                e <- elems' `Parsec.sepEndBy` symbol ";"
+                _ <- symbol "}"
+                return e
+    where
+      elems' = whiteSpace >> lexeme elems
+
+
+patternMatch :: BonlangParsec u L.BonlangPattern
+patternMatch = stringMatch <|> numericMatch <|> wildCardMatch
+               where
+                 stringMatch   = Parsec.try $ (L.BonlangStringPattern . T.pack <$> P.stringLiteral bonlang)
+                 numericMatch  = Parsec.try $ (L.BonlangNumberPattern <$> P.naturalOrFloat bonlang)
+                 wildCardMatch = Parsec.try $ (lexeme (Parsec.string "_") >> return L.BonlangWildcardPattern)
+
+patternMatchBlock :: BonlangParsec u L.BonlangValue
+patternMatchBlock = do _        <- reserved "match"
+                       ref      <- refIdentifier
+                       matches  <- bracesBlock matchParse
+                       return L.BonlangPatternMatch { L.match   = ref
+                                                    , L.clauses = matches
+                                                    }
+                    where
+                      matchParse = do pattern <- patternMatch
+                                      _       <- reservedOp "->"
+                                      expr    <- simpleExpression
+                                      return ( pattern, expr )
+
+instructionBlock :: BonlangParsec u L.BonlangValue
+instructionBlock
+  = L.BonlangBlock <$> bracesBlock actions
+    where
+        actions = aliasAssign <|> simpleExpression
+
 aliasAssign :: BonlangParsec u L.BonlangValue
 aliasAssign = do reserved "val"
                  aName  <- identifier
@@ -127,18 +162,6 @@ aliasAssign = do reserved "val"
                                        , L.aliasExpression = aValue
                                        }
 
--- TODO: This is fugly
-instructionBlock :: BonlangParsec u L.BonlangValue
-instructionBlock
-  = lexeme $ do _ <- symbol "{"
-                e <- actions `Parsec.sepEndBy` symbol ";"
-                _ <- symbol "}"
-                return e
-    >>= \x -> return L.BonlangBlock { L.instructions = x }
-    where
-        actions = do whiteSpace
-                     lexeme $ aliasAssign <|> simpleExpression
-
 functionDef :: (String -> [String] -> BonlangParsec u a) -> BonlangParsec u a
 functionDef f = Parsec.try $ do reserved "def"
                                 funName   <- lexeme identifier
@@ -146,8 +169,8 @@ functionDef f = Parsec.try $ do reserved "def"
                                 _ <- lexeme $ Parsec.char '='
                                 Parsec.try $ f funName funParams
 
-pureFunctionDef :: BonlangParsec u L.BonlangValue
-pureFunctionDef
+functionDefine :: BonlangParsec u L.BonlangValue
+functionDefine
   = functionDef $ \funName funParams -> do
       fDef' <- expression
       return L.BonlangAlias { L.aliasName       = funName
@@ -167,7 +190,7 @@ moduleDef
        mName <- identifier
        reserved "where"
        mImports <- Parsec.many importStatements
-       fs       <- Parsec.manyTill pureFunctionDef Parsec.eof
+       fs       <- Parsec.manyTill functionDefine Parsec.eof
        return L.BonlangDirective
            { L.directive = L.ModuleDef
                { L.moduleName    = mName
@@ -204,13 +227,14 @@ simpleExpression =  parenthesis simpleExpression
                 <|> refIdentifier
                 <|> conditional
                 <|> instructionBlock
+                <|> patternMatchBlock
                 <|> closure
 
 expression :: BonlangParsec u L.BonlangValue
 expression =  parenthesis expression
           <|> simpleExpression
           <|> aliasAssign
-          <|> pureFunctionDef
+          <|> functionDefine
 
 bonlangParser :: BonlangParsec u L.BonlangValue
 bonlangParser = whiteSpace >> (moduleDef <|> expression)

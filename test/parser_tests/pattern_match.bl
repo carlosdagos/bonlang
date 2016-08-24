@@ -1,0 +1,19 @@
+module Main where
+
+def is-zero [num] = match num {
+                        0 -> true;
+                        _ -> false;
+                    }
+
+def is-carlos [str] = match str {
+                        "carlos" -> true;
+                        _        -> false;
+                      }
+
+def main [] = {
+  val two = 2;
+  val isTwo = match two {
+                 2 -> true;
+                 _ -> false;
+              };
+}
