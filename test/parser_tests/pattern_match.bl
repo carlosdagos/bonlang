@@ -1,14 +1,22 @@
 module Main where
 
-def is-zero [num] = match num {
-                        0 -> true;
-                        _ -> false;
-                    }
+def is-zero [num] =
+  match num {
+    0 -> true;
+    _ -> false;
+  }
 
-def is-carlos [str] = match str {
-                        "carlos" -> true;
-                        _        -> false;
-                      }
+def is-carlos [str] =
+  match str {
+    "carlos" -> true;
+     _        -> false;
+  }
+
+def is-single-element [list] =
+  match list {
+    [_] -> true;
+    _   -> false;
+  }
 
 def main [] = {
   val two = 2;

@@ -1,0 +1,19 @@
+module Main where
+
+def list-head [list] =
+  match list {
+    []        -> error $ "Empty list";
+    [ x | _ ] -> x;
+  }
+
+def list-reverse [list] =
+  match list {
+    []         -> [];
+    [ x | xs ] -> concat-lists $ (list-reverse $ xs) [x];
+  }
+
+def list-to-pairs [list] =
+  match list {
+    []            -> [];
+    [ x, y | xs ] -> concat-lists $ [x, y] (list-to-pairs $ xs);
+  }
