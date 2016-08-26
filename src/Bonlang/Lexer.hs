@@ -25,7 +25,7 @@ bonlangStyle = emptyDef
                       <|> Parsec.oneOf symbols
     , P.opStart         = P.opLetter bonlangStyle
     , P.opLetter        = Parsec.oneOf symbols
-    , P.reservedOpNames = [ "=", ".", "$", "=>", "->" ]
+    , P.reservedOpNames = [ "=", ".", "$", "=>", "->", "|" ]
     , P.reservedNames   = [ "if",     "then",     "else"
                           , "match"
                           , "import"
@@ -86,8 +86,11 @@ identifier = P.identifier bonlang
 refIdentifier :: BonlangParsec u L.BonlangValue
 refIdentifier =  L.BonlangRefLookup <$> identifier
 
+commaSep :: BonlangParsec u a -> BonlangParsec u [a]
+commaSep = P.commaSep bonlang
+
 list :: BonlangParsec u L.BonlangValue
-list = L.BonlangList <$> brackets (P.commaSep bonlang expression)
+list = L.BonlangList <$> brackets (commaSep expression)
 
 whiteSpace :: BonlangParsec u ()
 whiteSpace = P.whiteSpace bonlang
@@ -128,24 +131,43 @@ bracesBlock elems
 
 
 patternMatch :: BonlangParsec u L.BonlangPattern
-patternMatch = stringMatch <|> numericMatch <|> wildCardMatch
-               where
-                 stringMatch   = Parsec.try $ (L.BonlangStringPattern . T.pack <$> P.stringLiteral bonlang)
-                 numericMatch  = Parsec.try $ (L.BonlangNumberPattern <$> P.naturalOrFloat bonlang)
-                 wildCardMatch = Parsec.try $ (lexeme (Parsec.string "_") >> return L.BonlangWildcardPattern)
+patternMatch = listMatch
+           <|> referenceMatch
+           <|> scalarPattern
+           <|> wildCardMatch
+   where
+     scalarPattern =
+       Parsec.try $ L.ScalarPattern <$> scalarExpression
+     wildCardMatch =
+       Parsec.try $ lexeme (Parsec.string "_") >> return L.WildcardPattern
+     referenceMatch =
+       Parsec.try $ L.ReferencePattern <$> P.identifier bonlang
+     listMatch =
+       (Parsec.try $
+          brackets $
+            do elements <- commaSep patternMatch
+               return $ L.ListPattern elements Nothing)
+      <|>
+       (Parsec.try $
+          brackets $
+            do elements <- commaSep patternMatch
+               _        <- reservedOp "|"
+               rest     <- referenceMatch <|> wildCardMatch
+               return $ L.ListPattern elements (Just rest))
 
 patternMatchBlock :: BonlangParsec u L.BonlangValue
 patternMatchBlock = do _        <- reserved "match"
-                       ref      <- refIdentifier
+                       ref      <- simpleExpression
                        matches  <- bracesBlock matchParse
                        return L.BonlangPatternMatch { L.match   = ref
                                                     , L.clauses = matches
                                                     }
-                    where
-                      matchParse = do pattern <- patternMatch
-                                      _       <- reservedOp "->"
-                                      expr    <- simpleExpression
-                                      return ( pattern, expr )
+  where
+    matchParse :: BonlangParsec u (L.BonlangPattern, L.BonlangValue)
+    matchParse = do p    <- patternMatch
+                    _    <- reservedOp "->"
+                    expr <- simpleExpression
+                    return ( p, expr )
 
 instructionBlock :: BonlangParsec u L.BonlangValue
 instructionBlock

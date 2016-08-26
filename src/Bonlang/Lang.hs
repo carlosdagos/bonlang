@@ -50,42 +50,42 @@ data BonlangDirectiveType
 --------------------------------------------------------------------------------
 -- | Pattern Matching possiblities
 data BonlangPattern
-    = BonlangStringPattern    T.Text
-    | BonlangRegexPattern     T.Text
-    | BonlangNumberPattern    (Either Integer Double)
-    | BonlangListPattern      [BonlangPattern] BonlangPattern
-    | BonlangWildcardPattern
+    = ScalarPattern    BonlangValue
+    | RegexPattern     String
+    | ReferencePattern String
+    | ListPattern      [BonlangPattern] (Maybe BonlangPattern)
+    | WildcardPattern
     deriving (Show)
 
 --------------------------------------------------------------------------------
 -- | All the possible value types
 data BonlangValue
-    = BonlangList       { unList :: [BonlangValue] }
-    | BonlangNumber     { unNumber :: BonlangNum }
-    | BonlangString     { unString :: T.Text }
-    | BonlangBool       { unBool :: Bool }
-    | BonlangIfThenElse { condition  :: BonlangValue
-                        , valueTrue  :: BonlangValue
-                        , valueFalse :: BonlangValue
-                        }
+    = BonlangList        { unList :: [BonlangValue] }
+    | BonlangNumber       { unNumber :: BonlangNum }
+    | BonlangString       { unString :: T.Text }
+    | BonlangBool         { unBool :: Bool }
+    | BonlangIfThenElse   { condition  :: BonlangValue
+                          , valueTrue  :: BonlangValue
+                          , valueFalse :: BonlangValue
+                          }
     | BonlangPatternMatch { match   :: BonlangValue
                           , clauses :: [(BonlangPattern, BonlangValue)]
                           }
-    | BonlangClosure    { cParams :: ParamsList
-                        , cEnv    :: Bindings
-                        , cBody   :: BonlangValue
-                        }
-    | BonlangPrimFunc   { fPrimDef :: PrimFunc }
-    | BonlangPrimIOFunc { fPrimIODef :: PrimIOFunc }
-    | BonlangBlock      { instructions :: [BonlangValue] }
-    | BonlangFuncApply  { fResolver :: BonlangValue
-                        , fParams   :: [BonlangValue]
-                        }
-    | BonlangAlias      { aliasName       :: String
-                        , aliasExpression :: BonlangValue
-                        }
-    | BonlangRefLookup  { referenceName :: String }
-    | BonlangDirective  { directive :: BonlangDirectiveType }
+    | BonlangClosure      { cParams :: ParamsList
+                          , cEnv    :: Bindings
+                          , cBody   :: BonlangValue
+                          }
+    | BonlangPrimFunc     { fPrimDef :: PrimFunc }
+    | BonlangPrimIOFunc   { fPrimIODef :: PrimIOFunc }
+    | BonlangBlock        { instructions :: [BonlangValue] }
+    | BonlangFuncApply    { fResolver :: BonlangValue
+                          , fParams   :: [BonlangValue]
+                          }
+    | BonlangAlias        { aliasName       :: String
+                          , aliasExpression :: BonlangValue
+                          }
+    | BonlangRefLookup    { referenceName :: String }
+    | BonlangDirective    { directive :: BonlangDirectiveType }
     deriving (Show)
 
 --------------------------------------------------------------------------------

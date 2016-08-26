@@ -23,8 +23,10 @@ import           Control.Monad.IO.Class     (liftIO)
 import qualified Control.Monad.Loops        as Loops
 import           Control.Monad.Trans.Except as Except
 import qualified Data.IORef                 as IORef
+import qualified Data.List                  as L
 import qualified Data.Map                   as M
-import           Data.Maybe                 (fromJust, isJust)
+import           Data.Maybe                 (fromJust, isJust, isJust,
+                                             isNothing)
 import qualified System.IO                  as IO
 
 -- | Adhoc types to use as phantoms for handles, useful for testing input and
@@ -125,11 +127,39 @@ eval s x@BonlangAlias {}
   = if aliasName x == "main"
        then eval s (aliasExpression x)
        else defineReference s x
-eval s x@BonlangIfThenElse{}
+eval s x@BonlangIfThenElse {}
   = do x' <- evalUntilReduced s $ condition x
        case x' of
           BonlangBool True -> eval s $ valueTrue x
           _                -> eval s $ valueFalse x
+eval s x@BonlangPatternMatch {}
+  = do toMatch <- evalUntilReduced s (match x)
+       let maybeClause = L.find (matchingClause toMatch) (clauses x)
+       case maybeClause of
+         Just _  -> undefined
+         Nothing -> undefined
+  where
+    matchingClause val ( p, _ ) = matchValue val p
+    matchValue val p =
+      case p of
+          ScalarPattern scalar -> scalar == val
+          ListPattern xs rest  -> case val of
+                                     BonlangList ys -> matchList xs rest ys
+                                     _              -> False
+          ReferencePattern _   -> True
+          RegexPattern _       -> undefined
+          WildcardPattern      -> True
+    matchList xs rest ys
+      -- Trying to match a bigger list
+      | length xs > length ys  = False
+      -- Matching exact length lists, `rest` can't be present, and values must
+      -- match
+      | length xs == length ys = isNothing rest
+                              && all (uncurry matchValue) (zip ys xs)
+      -- Matching a smaller list, `rest` must be present, and values must
+      -- match
+      | otherwise              = isJust rest
+                              && all (uncurry matchValue) (zip ys xs)
 eval _ x
   = Except.throwE $ InternalTypeMismatch "Don't know how to eval" [x]
 
