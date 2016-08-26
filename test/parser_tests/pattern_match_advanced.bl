@@ -15,5 +15,25 @@ def list-reverse [list] =
 def list-to-pairs [list] =
   match list {
     []            -> [];
-    [ x, y | xs ] -> concat-lists $ [x, y] (list-to-pairs $ xs);
+    [_]           -> error $ "Uneven number of elements!";
+    [ x, y | xs ] -> concat-lists $ (list-to-pairs $ xs) [cons $ x y];
   }
+
+/*
+ * `partialAdd` should be a partially applied
+ * function with a numeric argument
+ */
+def applyTwoEqualsFour? [partialAdd] =
+  match (partialAdd $ 2) {
+      4 -> true;
+      _ -> false;
+  }
+
+def main [] = {
+  val my-list = [1, 2, 3, 4];
+
+  puts-ln $ (to-string $ (list-head $ my-list));
+  puts-ln $ (to-string $ (list-reverse $ my-list));
+  puts-ln $ (to-string $ (list-to-pairs $ my-list));
+  puts-ln $ (to-string $ (applyTwoEqualsFour? $ (+ $ 2)));
+}
