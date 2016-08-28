@@ -1,7 +1,7 @@
 README
 ======
 
-![doc/images/bonlang_logo.png](Logo)
+![doc/images/bonlang_logo.png](doc/images/bonlang_logo.png)
 
 ## Introduction
 
