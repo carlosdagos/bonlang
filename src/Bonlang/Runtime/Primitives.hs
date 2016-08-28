@@ -53,6 +53,7 @@ ioPrimitives handle =
   [ ("print",        BonIO.print handle)
   , ("puts",         BonIO.puts handle)
   , ("puts-ln",      BonIO.putsln handle)
+  , ("error",        BonIO.error')
   , ("map",          Lists.map')
   , ("concat-lists", Lists.concatLists')
   ]

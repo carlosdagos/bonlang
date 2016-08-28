@@ -68,7 +68,11 @@ string :: BonlangParsec u L.BonlangValue
 string = L.BonlangString . T.pack <$> P.stringLiteral bonlang
 
 number :: BonlangParsec u L.BonlangValue
-number = L.BonlangNumber <$> P.naturalOrFloat bonlang
+number =
+     Parsec.try (Parsec.char '-' >> L.BonlangNumber . (*(-1)) <$> parseNumber)
+ <|> (L.BonlangNumber <$> parseNumber)
+    where
+      parseNumber = P.naturalOrFloat bonlang
 
 boolean :: BonlangParsec u L.BonlangValue
 boolean =  (reserved "true"  >> return (L.BonlangBool True))

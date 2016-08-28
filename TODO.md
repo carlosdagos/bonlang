@@ -2,9 +2,8 @@
 
 In no particular order
 
-- Lexer and Runtime renaming of closures
 - ~~Add support for lambdas~~
-- Primitive function currying! **Important**
+- ~~Primitive function currying! **Important**~~
 - ~~Automatic currying~~
 - IO Read functions
 - Support for custom data types (¿?)

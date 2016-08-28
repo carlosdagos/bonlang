@@ -2,6 +2,7 @@ module Bonlang.Runtime.IO
     ( print
     , puts
     , putsln
+    , error'
     ) where
 
 import           Bonlang.Lang
@@ -29,3 +30,13 @@ print, puts, putsln :: IO.Handle -> BonlangValue
 print  h = ioOutput (IO.hPrint h)
 puts   h = ioOutput (IO.hPutStr h)
 putsln h = ioOutput (IO.hPutStrLn h)
+
+
+error' :: BonlangValue
+error' = BonlangClosure { cParams = ["s0"]
+                        , cEnv    = M.empty
+                        , cBody   = BonlangPrimIOFunc err
+                        }
+         where
+          err :: PrimIOFunc
+          err x = error $ show x

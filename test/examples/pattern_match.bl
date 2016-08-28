@@ -1,3 +1,7 @@
+---
+output: "Is zero? 0 => True\nIs zero? 2 => False\nIs string? carlos => True\nIs string? mauro => False\nIs is-single-element? [] => False\nIs is-single-element? [\"a\"] => True\nIs is-single-element? [1, 2, 3] => False\nIs list-starts-with-one? [1, 2, 3] => True\nIs list-starts-with-one? [1] => True\nIs list-starts-with-one? [0, -1, -3] => False\nIs list-has-one-a-wildcard-and-three? [1, 2, 3] => True\nIs list-has-one-a-wildcard-and-three? [1, 2, 3, 4] => True\nIs list-has-one-a-wildcard-and-three? [1, -1, 4] => False\nIs list-has-one-a-wildcard-and-three? [] => False\n"
+---
+
 module Main where
 
 def is-zero [num] =

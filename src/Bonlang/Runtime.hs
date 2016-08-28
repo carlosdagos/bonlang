@@ -52,24 +52,28 @@ getReference _ value
 isReferenceDefined :: Scope -> String -> IO Bool
 isReferenceDefined scope name = isJust . M.lookup name <$> IORef.readIORef scope
 
-defineReference :: Scope
-                -> BonlangValue
-                -> IOThrowsException BonlangValue
+defineReference :: Scope -> BonlangValue -> IOThrowsException BonlangValue
 defineReference scope x
   = case x of
-      (BonlangAlias name value) -> define' name value
-      bad                       -> error' bad
+      BonlangAlias name value -> define' name value
+      bad                     -> error' bad
   where
       define' name value =
             do alreadyDefined <- liftIO $ isReferenceDefined scope name
                if alreadyDefined
                   then Except.throwE $ DefaultError "alreadyDefined"
-                  else liftIO $ do s <- IORef.readIORef scope
-                                   IORef.writeIORef scope $
-                                       M.insert name value s
-                                   return value
+                  else writeReference scope name value
       error' bad = Except.throwE $
           InternalTypeMismatch "Can't define reference" [bad]
+
+writeReference :: Scope
+               -> String
+               -> BonlangValue
+               -> IOThrowsException BonlangValue
+writeReference scope name value
+  = liftIO $ do s <- IORef.readIORef scope
+                IORef.writeIORef scope $ M.insert name value s
+                return value
 
 primitiveBindings :: BonHandle InputHandle -> BonHandle OutputHandle -> IO Scope
 primitiveBindings (BonHandle _) (BonHandle out)
@@ -113,7 +117,7 @@ eval s (BonlangFuncApply x@BonlangPrimFunc {} ps)
 eval s (BonlangFuncApply x@BonlangPrimIOFunc {} ps)
   = evalList s ps >>= runPrim x s
 eval s (BonlangFuncApply x@BonlangClosure {} ps)
-   = evalList s ps >>= evalClosure s x . unList
+  = evalList s ps >>= evalClosure s x . unList
 eval s (BonlangFuncApply r ps)
   = do ref' <- getReference s r
        if isReduced ref'
@@ -132,12 +136,15 @@ eval s x@BonlangIfThenElse {}
        case x' of
           BonlangBool True -> eval s $ valueTrue x
           _                -> eval s $ valueFalse x
+-- TODO: Clean this up
+-- TODO: This ranks on my "Top 10 ugliest code", pls forgive me
+-- TODO: This isn't well tested!
 eval s x@BonlangPatternMatch {}
   = do toMatch <- evalUntilReduced s (match x)
        let maybeClause = L.find (matchingClause toMatch) (clauses x)
        case maybeClause of
-         Just _  -> undefined
-         Nothing -> undefined
+         Just clause  -> evalMatchedClause s clause toMatch
+         Nothing      -> Except.throwE $ DefaultError "No match"
   where
     matchingClause val ( p, _ ) = matchValue val p
     matchValue val p =
@@ -150,16 +157,42 @@ eval s x@BonlangPatternMatch {}
           RegexPattern _       -> undefined
           WildcardPattern      -> True
     matchList xs rest ys
-      -- Trying to match a bigger list
-      | length xs > length ys  = False
-      -- Matching exact length lists, `rest` can't be present, and values must
-      -- match
-      | length xs == length ys = isNothing rest
-                              && all (uncurry matchValue) (zip ys xs)
-      -- Matching a smaller list, `rest` must be present, and values must
-      -- match
-      | otherwise              = isJust rest
-                              && all (uncurry matchValue) (zip ys xs)
+      -- Trying to match a smaller list
+      -- i.e. `match [1, 2] { [x, y, z] -> ... }` does not match
+      | isNothing rest = length xs == length ys
+      -- Matching exact length lists, or shorter, values must
+      -- match, and `rest` can be present
+      -- i.e.
+      --   `match [1, 2] { [x, y] -> ... } => x = 1, y = 2`
+      --   `match [1, 2, 3] { [ x, y | xs ] -> ... } => x = 1, y = 2, xs = [3]`
+      | otherwise      = length ys >= length xs
+                      && all (uncurry matchValue) (zip ys xs)
+    evalMatchedClause s' (p, v) matchedValue =
+      case p of
+          ListPattern xs rest
+            -> evalMatchedList s' xs rest matchedValue (eval s' v)
+          _
+            -> eval s' v
+    -- val = [ 1, 2 ], pattern = [ x | xs ]
+    --    => x = 1, xs = [2]
+    -- val = [ 1, 2, 3 ], pattern = [ x, y | xs ]
+    --    => x = 1, y = 2, xs = [3]
+    -- val = [ 1, 2, 3 ], pattern = [ x, y, z | xs ]
+    --    => x = 1, y = 2, z, = 3, xs = []
+    -- val = [ 1, 2, 3 ], pattern = [ x | _ ]
+    --    => x = 1
+    evalMatchedList s' (ReferencePattern ref : xs) rest (BonlangList (y : ys)) end
+      = writeReference s' ref y >> evalMatchedList s' xs rest (BonlangList ys) end
+    evalMatchedList s' (_ : xs) rest (BonlangList (_ : ys)) end
+      = evalMatchedList s' xs rest (BonlangList ys) end
+    evalMatchedList s' [] (Just (ReferencePattern ref)) ys@(BonlangList _) end
+      = writeReference s' ref ys >> end
+    evalMatchedList _ [] Nothing (BonlangList _) end
+      = end
+    evalMatchedList _ [] (Just WildcardPattern) (BonlangList _) end
+      = end
+    evalMatchedList _ _ _ _ _
+      = Except.throwE $ InternalTypeMismatch "Invalid match statement" []
 eval _ x
   = Except.throwE $ InternalTypeMismatch "Don't know how to eval" [x]
 
