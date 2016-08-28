@@ -130,6 +130,67 @@ def main [] = {
 }
 ```
 
+It also supports simple pattern matching on scalars and lists
+
+```
+def is-zero [num] =
+  match num {
+    0 -> true;
+    _ -> false;
+  }
+```
+
+```
+def is-single-element [list] =
+  match list {
+    [_] -> true;
+    _   -> false;
+  }
+```
+
+A more advanced usage example would be
+
+Checking a static prefix:
+```
+def list-starts-with-one? [list] =
+  match list {
+    [ 1 | _ ] -> true;
+    _         -> false;
+  }
+```
+
+Or
+```
+def list-has-one-a-wildcard-and-three? [list] =
+  match list {
+    [ 1, _, 3 | _ ] -> true;
+    _               -> false;
+  }
+```
+
+And of course some classic examples using pattern matching
+
+```
+def list-head [list] =
+  match list {
+    []        -> error $ "Empty list";
+    [ x | _ ] -> x;
+  }
+
+def list-reverse [list] =
+  match list {
+    []         -> [];
+    [ x | xs ] -> concat-lists $ (list-reverse $ xs) [x];
+  }
+
+def list-to-pairs [list] =
+  match list {
+    []            -> [];
+    [_]           -> error $ "Uneven number of elements!";
+    [ x, y | xs ] -> concat-lists $ [[x, y]] (list-to-pairs $ xs);
+  }
+```
+
 ## Motivations
 
 This is developed in Haskell, I wanted to

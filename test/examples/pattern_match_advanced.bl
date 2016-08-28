@@ -1,0 +1,43 @@
+---
+output: "1\n[4,3,2,1]\n[[1,2],[3,4]]\nTrue\n"
+---
+
+module Main where
+
+def list-head [list] =
+  match list {
+    []        -> error $ "Empty list";
+    [ x | _ ] -> x;
+  }
+
+def list-reverse [list] =
+  match list {
+    []         -> [];
+    [ x | xs ] -> concat-lists $ (list-reverse $ xs) [x];
+  }
+
+def list-to-pairs [list] =
+  match list {
+    []            -> [];
+    [_]           -> error $ "Uneven number of elements!";
+    [ x, y | xs ] -> concat-lists $ [[x, y]] (list-to-pairs $ xs);
+  }
+
+/*
+ * `partial` should be a partially applied
+ * function with a numeric argument
+ */
+def applyTwoEqualsFour? [partial] =
+  match (partial $ 2) {
+      4 -> true;
+      _ -> false;
+  }
+
+def main [] = {
+  val my-list = [1, 2, 3, 4];
+
+  puts-ln $ (to-string $ (list-head $ my-list));
+  puts-ln $ (to-string $ (list-reverse $ my-list));
+  puts-ln $ (to-string $ (list-to-pairs $ my-list));
+  puts-ln $ (to-string $ (applyTwoEqualsFour? $ (+ $ 2)));
+}

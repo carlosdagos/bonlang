@@ -1,10 +1,12 @@
 module Bonlang.Runtime.Lists
     ( map'
+    , concatLists'
     ) where
 
 import           Bonlang.Lang
 import           Control.Monad.Trans.Except as Except
 import qualified Data.Map                   as M
+import           Data.Monoid
 
 -- This first list should be already resolved
 map' :: BonlangValue
@@ -29,3 +31,15 @@ applyFunc :: BonlangValue -> BonlangValue -> BonlangValue
 applyFunc x p' = BonlangFuncApply { fResolver = x
                                   , fParams   = [p']
                                   }
+
+concatLists' :: BonlangValue
+concatLists' = BonlangClosure { cParams = ["list0", "list1"]
+                              , cEnv    = M.empty
+                              , cBody   = BonlangPrimIOFunc listConcat
+                              }
+    where
+      listConcat :: PrimIOFunc
+      listConcat [BonlangList xs, BonlangList ys] =
+        return $ BonlangList (xs <> ys)
+      listConcat _ =
+        Except.throwE $ DefaultError "Invalid arguments"
