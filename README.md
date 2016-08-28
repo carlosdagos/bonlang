@@ -140,6 +140,8 @@ def is-zero [num] =
   }
 ```
 
+Will only return `true` for `is-zero $ 0`
+
 ```
 def is-single-element [list] =
   match list {
@@ -147,6 +149,8 @@ def is-single-element [list] =
     _   -> false;
   }
 ```
+
+Will only return true for lists with one item, of whatever type and value.
 
 A more advanced usage example would be
 
@@ -159,7 +163,13 @@ def list-starts-with-one? [list] =
   }
 ```
 
+Will return true for lists like
+`[1], [1, 2], [1, 2, 3], [1, "a"], [1, 4], [1,-1]`, but never for lists that
+don't start with a `1`.
+
+
 Or
+
 ```
 def list-has-one-a-wildcard-and-three? [list] =
   match list {
@@ -168,21 +178,37 @@ def list-has-one-a-wildcard-and-three? [list] =
   }
 ```
 
+Will return true for a list like `[1, 3, 3]` or `[1, -1, 3, 4, 5]`.
+
 And of course some classic examples using pattern matching
 
 ```
+// Gets first element of a given list
+// Example: (list-head $ [1, 2, 3]) => 1
 def list-head [list] =
   match list {
     []        -> error $ "Empty list";
     [ x | _ ] -> x;
   }
 
+// Discards the first element of a list and returns the rest
+// Example: (list-tail $ [1, 2, 3]) => [2, 3]
+def list-tail [list] =
+  match list {
+    []         -> error $ "Empty list";
+    [ _ | xs ] -> xs;
+  }
+
+// Reverses a list
+// Example: (list-reverse $ [1, 2, 3, 4]) => [4, 3, 2, 1]
 def list-reverse [list] =
   match list {
     []         -> [];
     [ x | xs ] -> concat-lists $ (list-reverse $ xs) [x];
   }
 
+// Gets a list of successive pairs for a given list
+// Example: (list-to-pairs $ [1, 2, 3, 4]) => [[1, 2], [3, 4]]
 def list-to-pairs [list] =
   match list {
     []            -> [];

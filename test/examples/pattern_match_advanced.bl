@@ -1,5 +1,5 @@
 ---
-output: "1\n[4,3,2,1]\n[[1,2],[3,4]]\nTrue\n"
+output: "1\n[2,3,4]\n[4,3,2,1]\n[[1,2],[3,4]]\nTrue\n"
 ---
 
 module Main where
@@ -8,6 +8,12 @@ def list-head [list] =
   match list {
     []        -> error $ "Empty list";
     [ x | _ ] -> x;
+  }
+
+def list-tail [list] =
+  match list {
+    []         -> error $ "Empty list";
+    [ _ | xs ] -> xs;
   }
 
 def list-reverse [list] =
@@ -37,6 +43,7 @@ def main [] = {
   val my-list = [1, 2, 3, 4];
 
   puts-ln $ (to-string $ (list-head $ my-list));
+  puts-ln $ (to-string $ (list-tail $ my-list));
   puts-ln $ (to-string $ (list-reverse $ my-list));
   puts-ln $ (to-string $ (list-to-pairs $ my-list));
   puts-ln $ (to-string $ (applyTwoEqualsFour? $ (+ $ 2)));
