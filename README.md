@@ -1,14 +1,7 @@
-Bonlang
-=======
+README
+======
 
-Stylised as, though this is subject to change, ...
-
-```
-  __
- |__)  _   _  |  _   _   _
- |__) (_) | ) | (_| | ) (_)
-                        _/
-```
+![doc/images/bonlang_logo.png](Logo)
 
 ## Introduction
 
