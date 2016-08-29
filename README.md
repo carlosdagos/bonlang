@@ -10,6 +10,8 @@ It's a programming language! A minimalist programming language.
 I wrote (most) this during the ZuriHac 2016 weekend, and **it's still a work in
 progress.**
 
+I wrote about the whys and the whats [here](https://cdagostino.io/posts/2016-08-16-bonlang-experimenting-languages.html).
+
 ## First steps
 
 Head over to the [examples](test/examples/) folder for some good stuff.
