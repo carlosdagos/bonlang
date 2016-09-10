@@ -7,6 +7,8 @@ README
 
 It's a programming language! A minimalist (functional) programming language.
 
+I wrote about the whys and the whats [here](https://cdagostino.io/posts/2016-08-16-bonlang-experimenting-languages.html).
+
 ## First steps
 
 Head over to the [examples](test/examples/) folder for some good stuff.
