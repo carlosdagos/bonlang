@@ -1,0 +1,15 @@
+---
+output: "0.5\n-4\n"
+---
+
+module Main where
+
+def flip [f, x, y] = f $ y x
+
+def main [] = {
+  val flipDiv = flip $ (/);
+  val flipMin = flip $ (-);
+
+  puts-ln $ (flipDiv $ 8 4); // 4 / 8 = 0.5
+  puts-ln $ (flipMin $ 8 4); // 4 - 8 = -4
+}

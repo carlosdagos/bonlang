@@ -5,10 +5,7 @@ README
 
 ## Introduction
 
-It's a programming language! A minimalist programming language.
-
-I wrote (most) this during the ZuriHac 2016 weekend, and **it's still a work in
-progress.**
+It's a programming language! A minimalist (functional) programming language.
 
 ## First steps
 
@@ -60,6 +57,27 @@ def main [] = {
     print'; // Needs evaluation to happen
 }
 ```
+
+### Functional
+
+The language is functional, so you can treat functions as
+[first class citizens](https://en.wikipedia.org/wiki/First-class_function).
+
+```
+def flip [f, x, y] = f $ y x
+
+// Prints out 0.5
+def main [] = {
+  val flipDiv = flip $ (/);  // flip the order of the division
+  puts-ln $ (flipDiv $ 8 4); // 4 / 8 = 0.5
+}
+```
+
+This is the `flip` function
+[found in Haskell (for example)](http://hackage.haskell.org/package/base-4.9.0.0/docs/Prelude.html#v:flip).
+
+You can read more about `flip`
+[here](http://learnyouahaskell.com/higher-order-functions).
 
 ### Automatic currying
 
