@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Bonlang.Runtime
@@ -214,14 +215,15 @@ evalClosure :: Scope
 evalClosure s c@BonlangClosure {} ps
   = do s' <- liftIO $ IORef.readIORef s
        let u = M.union
-       if notEnoughParams
-          then return BonlangClosure { cParams = cParams c
+       if | notEnoughParams ->
+              return BonlangClosure { cParams = cParams c
                                      , cEnv    = cEnv c `u` newParams
                                      , cBody   = cBody c
                                      }
-          else if tooManyParams
-               then Except.throwE $ DefaultError "Too many params applied"
-               else do let cBody'   = cBody c
+          | tooManyParams ->
+              Except.throwE $ DefaultError "Too many params applied"
+          | otherwise ->
+                    do let cBody'   = cBody c
                        let newScope = newParams `u` cEnv c `u` s'
                        let primArgs = map snd $ M.toList $ cEnv c `u` newParams
                        s'' <- liftIO $ IORef.newIORef newScope
