@@ -39,8 +39,7 @@ main :: IO ()
 main = tests >>= defaultMain
 
 tests :: IO TestTree
-tests = do p <- sequence [parsing, testExpectations]
-           return $ testGroup "Bonlang" p
+tests = testGroup "Bonlang" <$> sequence [parsing, testExpectations]
 
 --------------------------------------------------------------------------------
 -- | Match running each example with the expected output
@@ -122,6 +121,8 @@ makeTestFile f = do fileContents <- T.pack <$> readFile f
                                                         }
                       _ -> return $ Left "Invalid syntax for example file"
 
+--------------------------------------------------------------------------------
+-- | Create a temporary file
 createTmpFile :: IO (FilePath, Handle)
 createTmpFile = do tmpdir <- getTemporaryDirectory
                    openTempFile tmpdir ""
